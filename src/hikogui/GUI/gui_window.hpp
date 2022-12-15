@@ -50,7 +50,7 @@ public:
      * The size of this rectangle is used to laying out widgets and setting
      * the size of the gfx_surface during rendering.
      */
-    aarectangle rectangle;
+    aarectanglei rectangle;
 
     /** The current cursor.
      * Used for optimizing when the operating system cursor is updated.
@@ -87,11 +87,11 @@ public:
 
     /** The size of the widget.
      */
-    extent2 widget_size;
+    extent2i widget_size;
 
     /** The widget covering the complete window.
      */
-    std::unique_ptr<window_widget> widget;
+    std::shared_ptr<window_widget> widget;
 
     /** Notifier used when the window is closing.
      * It is expected that after notifying these callbacks the instance of this class is destroyed.
@@ -165,19 +165,13 @@ public:
 
     /** The rectangle of the workspace of the screen where the window is currently located.
      */
-    virtual aarectangle workspace_rectangle() const noexcept = 0;
+    virtual aarectanglei workspace_rectangle() const noexcept = 0;
 
     /** The rectangle of the screen where the window is currently located.
      */
-    virtual aarectangle fullscreen_rectangle() const noexcept = 0;
+    virtual aarectanglei fullscreen_rectangle() const noexcept = 0;
 
     virtual hi::subpixel_orientation subpixel_orientation() const noexcept = 0;
-
-    /** The writing direction of this window.
-     *
-     * @return Either `unicode_bidi_class::L` for left-to-right; or `unicode_bidi_class::R` for right-to-left.
-     */
-    virtual unicode_bidi_class writing_direction() const noexcept = 0;
 
     /** Get the size-state of the window.
      */
@@ -194,9 +188,9 @@ public:
 
     /** Ask the operating system to set the size of this window.
      */
-    virtual void set_window_size(extent2 extent) = 0;
+    virtual void set_window_size(extent2i extent) = 0;
 
-    void update_mouse_target(hi::widget const *new_target_widget, point2 position = {}) noexcept;
+    void update_mouse_target(hi::widget const *new_target_widget, point2i position = {}) noexcept;
 
     /** Change the keyboard focus to the given widget.
      * If the group of the widget is incorrect then no widget will be in focus.
@@ -242,12 +236,12 @@ public:
      */
     virtual void put_text_on_clipboard(std::string_view text) const noexcept = 0;
 
-    [[nodiscard]] translate2 window_to_screen() const noexcept
+    [[nodiscard]] translate2i window_to_screen() const noexcept
     {
-        return translate2{rectangle.left(), rectangle.bottom()};
+        return translate2i{rectangle.left(), rectangle.bottom()};
     }
 
-    [[nodiscard]] translate2 screen_to_window() const noexcept
+    [[nodiscard]] translate2i screen_to_window() const noexcept
     {
         return ~window_to_screen();
     }
@@ -265,7 +259,9 @@ public:
 protected:
     static constexpr std::chrono::nanoseconds _animation_duration = std::chrono::milliseconds(150);
 
-    std::atomic<aarectangle> _redraw_rectangle = aarectangle{};
+    box_constraints _widget_constraints = {};
+
+    std::atomic<aarectanglei> _redraw_rectangle = aarectanglei{};
     std::atomic<bool> _relayout = false;
     std::atomic<bool> _reconstrain = false;
     std::atomic<bool> _resize = false;
@@ -276,7 +272,7 @@ protected:
 
     /** When the window is minimized, maximized or made full-screen the original size is stored here.
      */
-    aarectangle _restore_rectangle;
+    aarectanglei _restore_rectangle;
 
     /** The time of the last forced redraw.
      * A forced redraw may happen when needing to draw outside
@@ -294,7 +290,7 @@ protected:
     /** Let the operating system create the actual window.
      * @pre title and extent must be set.
      */
-    virtual void create_window(extent2 new_size) = 0;
+    virtual void create_window(extent2i new_size) = 0;
 
 private:
     notifier<>::callback_token _setting_change_token;
@@ -304,26 +300,12 @@ private:
      * Since any mouse event will change the target this is used
      * to check if the target has changed, to send exit events to the previous mouse target.
      */
-    hi::widget const *_mouse_target_widget = nullptr;
+    std::weak_ptr<hi::widget const> _mouse_target_widget;
 
     /** Target of the keyboard
      * widget where keyboard events are sent to.
      */
-    hi::widget const *_keyboard_target_widget = nullptr;
-
-    /** Called when a widget is being destructed.
-     * This removes internal references to widgets.
-     * Particularly the mouse and keyboard targets.
-     */
-    void remove_keyboard_and_mouse_target(hi::widget const *sender) noexcept
-    {
-        if (_mouse_target_widget == sender) {
-            _mouse_target_widget = nullptr;
-        }
-        if (_keyboard_target_widget == sender) {
-            _keyboard_target_widget = nullptr;
-        }
-    }
+    std::weak_ptr<hi::widget const> _keyboard_target_widget;
 
     /** Send event to a target widget.
      *

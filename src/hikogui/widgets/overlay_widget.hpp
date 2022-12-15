@@ -47,7 +47,7 @@ public:
      */
     overlay_widget(widget *parent) noexcept;
 
-    void set_widget(std::unique_ptr<widget> new_widget) noexcept;
+    void set_widget(std::shared_ptr<widget> new_widget) noexcept;
 
     /** Add a content widget directly to this overlay widget.
      *
@@ -64,7 +64,7 @@ public:
         hi_axiom(loop::main().on_thread());
         hi_assert(_content == nullptr);
 
-        auto tmp = std::make_unique<Widget>(this, std::forward<Args>(args)...);
+        auto tmp = std::make_shared<Widget>(this, std::forward<Args>(args)...);
         auto& ref = *tmp;
         set_widget(std::move(tmp));
         return ref;
@@ -76,16 +76,18 @@ public:
         co_yield _content.get();
     }
 
-    widget_constraints const& set_constraints(set_constraints_context const& context) noexcept override;
+    [[nodiscard]] box_constraints update_constraints() noexcept override;
     void set_layout(widget_layout const& context) noexcept override;
     void draw(draw_context const& context) noexcept override;
     [[nodiscard]] color background_color() const noexcept override;
     [[nodiscard]] color foreground_color() const noexcept override;
-    void scroll_to_show(hi::aarectangle rectangle) noexcept override;
-    [[nodiscard]] hitbox hitbox_test(point3 position) const noexcept override;
+    void scroll_to_show(hi::aarectanglei rectangle) noexcept override;
+    [[nodiscard]] hitbox hitbox_test(point2i position) const noexcept override;
     /// @endprivatesection
 private:
-    std::unique_ptr<widget> _content;
+    std::shared_ptr<widget> _content;
+    box_constraints _content_constraints;
+    box_shape _content_shape;
 
     void draw_background(draw_context const& context) noexcept;
 };
