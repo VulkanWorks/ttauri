@@ -4,14 +4,9 @@
 
 #pragma once
 
-#include "char_maps/to_string.hpp"
+#include "char_maps/module.hpp"
 #include "algorithm.hpp"
-#include "cast.hpp"
-#include "utility.hpp"
-#include "assert.hpp"
-#include "architecture.hpp"
-#include "concepts.hpp"
-#include "exception.hpp"
+#include "utility/module.hpp"
 #include <string>
 #include <string_view>
 #include <iterator>
@@ -612,6 +607,8 @@ constexpr auto to_array_without_last(T(&&rhs)[N]) noexcept
 {
     return make_cstr(s.c_str(), s.size());
 }
+
+
 
 } // namespace hi::inline v1
 

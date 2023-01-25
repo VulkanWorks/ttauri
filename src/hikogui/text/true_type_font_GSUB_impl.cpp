@@ -4,13 +4,11 @@
 
 #include "true_type_font.hpp"
 #include "../unicode/UTF.hpp"
-#include "../geometry/vector.hpp"
-#include "../geometry/point.hpp"
+#include "../geometry/module.hpp"
 #include "../placement.hpp"
 #include "../strings.hpp"
-#include "../endian.hpp"
 #include "../log.hpp"
-#include "../assert.hpp"
+#include "../utility/module.hpp"
 #include <cstddef>
 #include <span>
 
@@ -26,7 +24,7 @@ struct GSUB_version_1_0 {
     big_uint16_t lookup_list_offset;
 };
 
-struct GSUB_ligature
+struct GSUB_ligature {
 
 };
 

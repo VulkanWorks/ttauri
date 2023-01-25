@@ -4,10 +4,7 @@
 
 #pragma once
 
-#include "utility.hpp"
-#include "assert.hpp"
-#include "type_traits.hpp"
-#include "architecture.hpp"
+#include "utility/module.hpp"
 #include <complex>
 #include <cmath>
 #include <limits>
@@ -127,7 +124,7 @@ hi_force_inline constexpr std::pair<T, T> add_carry(T lhs, T rhs, T carry = T{0}
 
     constexpr std::size_t num_bits = sizeof(T) * CHAR_BIT;
 
-    if constexpr (has_uintxx_v<num_bits * 2>) {
+    if constexpr (has_native_uintxx_v<num_bits * 2>) {
         // We can use a native type that has double the size.
         using U = make_uintxx_t<num_bits * 2>;
 
@@ -164,7 +161,7 @@ hi_force_inline constexpr std::pair<T, T> mul_carry(T lhs, T rhs, T carry = T{0}
 {
     constexpr std::size_t num_bits = sizeof(T) * CHAR_BIT;
 
-    if constexpr (has_uintxx_v<num_bits * 2>) {
+    if constexpr (has_native_uintxx_v<num_bits * 2>) {
         // We can use a native type that has double the size.
         using U = make_uintxx_t<num_bits * 2>;
 
