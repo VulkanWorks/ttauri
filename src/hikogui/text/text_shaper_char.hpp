@@ -5,9 +5,7 @@
 #pragma once
 
 #include "text_style.hpp"
-#include "glyph_ids.hpp"
-#include "glyph_metrics.hpp"
-#include "font.hpp"
+#include "../font/module.hpp"
 #include "../unicode/unicode_description.hpp"
 #include "../unicode/grapheme.hpp"
 #include "../geometry/module.hpp"
@@ -133,7 +131,7 @@ public:
      * @note The glyph is only initialized when `glyph_is_initial == false`.
      * @post `glyph`, `metrics` and `width` are modified. `glyph_is_initial` is set to true.
      */
-    void initialize_glyph(hi::font_book &font_book, hi::font const &font) noexcept;
+    void initialize_glyph(hi::font_book const &font_book, hi::font const &font) noexcept;
 
     /** Initialize the glyph based on the grapheme.
      *

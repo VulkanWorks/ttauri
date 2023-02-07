@@ -314,7 +314,7 @@ elseif (MSVC)
         message(NOTICE "The following environment variables need to be set for the core guidelines checker to work:")
         message(NOTICE "    esp.extensions=cppcorecheck.dll")
         message(NOTICE "    esp.annotationbuildlevel=ignore")
-        message(NOTICE "    CAExcludePath=C:\\VulkanSDK;C:\\Program Files")
+        message(NOTICE "    CAExcludePath=C:\\VulkanSDK;C:\\Program Files;C:\\Users\\Tjienta\\Projects\\hikogui\\out\\build\\vc17-x64-windows-static-ana\\_deps")
         message(NOTICE "")
         target_compile_options(hikogui PUBLIC -analyze:plugin EspXEngine.dll)
 
@@ -347,6 +347,52 @@ elseif (MSVC)
         # The bug (since 2020) in the compiler seem to have been triggered in unrelated code.
         # https://developercommunity.visualstudio.com/t/c28020-false-positives/923103
         target_compile_options(hikogui PUBLIC -wd28020)
+
+        # C26465: Don't use const_cat to cast away const or volatile, const_cast is not required constness... (type.3)
+        # False positive on string literal,
+        # bug reported: https://developercommunity.visualstudio.com/t/C26465-false-positive-on-string-literal/10263615
+        target_compile_options(hikogui PUBLIC -wd26465)
+
+        # C26409: Avoid calling new and delete explicitly, use std::make_unique<T> instead (r.11)
+        # Can't exclude unit-test and google-test uses new and delete in the TEST() macro.
+        target_compile_options(hikogui PUBLIC -wd26409)
+
+        # C26426: Global initializer calls a non-constexpr function (i.22)
+        # Can't exclude unit-test and google-test does this a lot.
+        target_compile_options(hikogui PUBLIC -wd26426)
+
+        # C26455: Default constructor should not throw. Declare it 'noexcept' (f.6)
+        # Can't exclude unit-test and google-test uses throwing default constructors in the TEST() macro.
+        target_compile_options(hikogui PUBLIC -wd26455)
+
+
+
+        # Turn off every warning fix one at a time:
+        #target_compile_options(hikogui PUBLIC -wd26472)
+        #target_compile_options(hikogui PUBLIC -wd26473)
+        #target_compile_options(hikogui PUBLIC -wd26474)
+        target_compile_options(hikogui PUBLIC -wd26475)
+        target_compile_options(hikogui PUBLIC -wd26476)
+        target_compile_options(hikogui PUBLIC -wd26478)
+        target_compile_options(hikogui PUBLIC -wd26485)
+        target_compile_options(hikogui PUBLIC -wd26490)
+        target_compile_options(hikogui PUBLIC -wd26491)
+        target_compile_options(hikogui PUBLIC -wd26492)
+        target_compile_options(hikogui PUBLIC -wd26493)
+        target_compile_options(hikogui PUBLIC -wd26494)
+        target_compile_options(hikogui PUBLIC -wd26495)
+        target_compile_options(hikogui PUBLIC -wd26496)
+        target_compile_options(hikogui PUBLIC -wd26497)
+        target_compile_options(hikogui PUBLIC -wd26498)
+        target_compile_options(hikogui PUBLIC -wd26800)
+        target_compile_options(hikogui PUBLIC -wd26813)
+        target_compile_options(hikogui PUBLIC -wd26814)
+        target_compile_options(hikogui PUBLIC -wd26817)
+        target_compile_options(hikogui PUBLIC -wd26818)
+        target_compile_options(hikogui PUBLIC -wd26820)
+        target_compile_options(hikogui PUBLIC -wd26830)
+        target_compile_options(hikogui PUBLIC -wd26432)
+        target_compile_options(hikogui PUBLIC -wd26451)
 
     endif()
 endif()

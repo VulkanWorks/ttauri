@@ -5,12 +5,14 @@
 #pragma once
 
 #include "utility.hpp"
+#include "type_traits.hpp"
 #include "concepts.hpp"
 #include "assert.hpp"
 #include "compare.hpp"
 #include <type_traits>
 #include <concepts>
 #include <climits>
+#include <span>
 
 hi_warning_push();
 // C26472: Don't use static_cast for arithmetic conversions, Use brace initialization, gsl::narrow_cast or gsl::narrow (type.1).
@@ -24,6 +26,12 @@ hi_warning_ignore_msvc(26467);
 // C26496: The variable 'r' does not change after construction, mark it as const (con.4).
 // False positive
 hi_warning_ignore_msvc(26496);
+// C26466: Don't use static_cast downcast. A cast from a polymorphic type should use dynamic_cast (type.2)
+// Used in down_cast<>() specifically for doing this savely.
+hi_warning_ignore_msvc(26466);
+// C26474: Don't cast between pointer types when the conversion could be implicit (type.1).
+// Since these functions are templates this happens.
+hi_warning_ignore_msvc(26474);
 
 namespace hi::inline v1 {
 template<typename T>
@@ -39,7 +47,11 @@ template<typename Out, std::derived_from<std::remove_pointer_t<Out>> In>
     requires std::is_pointer_v<Out> and
     (std::is_const_v<std::remove_pointer_t<Out>> == std::is_const_v<In> or std::is_const_v<std::remove_pointer_t<Out>>)
 {
-    return static_cast<Out>(rhs);
+    if constexpr (std::is_same_v<std::remove_const_t<In>, remove_cvptr_t<Out>>) {
+        return rhs;
+    } else {
+        return static_cast<Out>(rhs);
+    }
 }
 
 /** Cast a reference to a class to its base class or itself.
@@ -58,7 +70,11 @@ template<typename Out, std::derived_from<std::remove_reference_t<Out>> In>
     requires std::is_reference_v<Out> and
     (std::is_const_v<std::remove_reference_t<Out>> == std::is_const_v<In> or std::is_const_v<std::remove_reference_t<Out>>)
 {
-    return static_cast<Out>(rhs);
+    if constexpr (std::is_same_v<std::remove_const_t<In>, std::remove_cvref_t<Out>>) {
+        return rhs;
+    } else {
+        return static_cast<Out>(rhs);
+    }
 }
 
 /** Cast a pointer to a class to its derived class or itself.
@@ -73,8 +89,12 @@ template<typename Out, base_of<std::remove_pointer_t<Out>> In>
     requires std::is_pointer_v<Out> and
     (std::is_const_v<std::remove_pointer_t<Out>> == std::is_const_v<In> or std::is_const_v<std::remove_pointer_t<Out>>)
 {
-    hi_axiom(rhs == nullptr or dynamic_cast<Out>(rhs) != nullptr);
-    return static_cast<Out>(rhs);
+    if constexpr (std::is_same_v<std::remove_const_t<In>, remove_cvptr_t<Out>>) {
+        return rhs;
+    } else {
+        hi_axiom(rhs == nullptr or dynamic_cast<Out>(rhs) != nullptr);
+        return static_cast<Out>(rhs);
+    }
 }
 
 /** Cast a pointer to a class to its derived class or itself.
@@ -99,8 +119,12 @@ template<typename Out, base_of<std::remove_reference_t<Out>> In>
     requires std::is_reference_v<Out> and
     (std::is_const_v<std::remove_reference_t<Out>> == std::is_const_v<In> or std::is_const_v<std::remove_reference_t<Out>>)
 {
-    hi_axiom(dynamic_cast<std::add_pointer_t<std::remove_reference_t<Out>>>(std::addressof(rhs)) != nullptr);
-    return static_cast<Out>(rhs);
+    if constexpr (std::is_same_v<std::remove_const_t<In>, std::remove_cvref_t<Out>>) {
+        return rhs;
+    } else {
+        hi_axiom(dynamic_cast<std::add_pointer_t<std::remove_reference_t<Out>>>(std::addressof(rhs)) != nullptr);
+        return static_cast<Out>(rhs);
+    }
 }
 
 /** Cast a number to a type that will be able to represent all values without loss of precision.
@@ -172,7 +196,7 @@ template<std::integral Out, arithmetic In>
  * @return The value casted to a different type without loss of precision.
  */
 template<typename Out, typename In>
-[[nodiscard]] constexpr Out narrow_cast(In const &rhs) noexcept;
+[[nodiscard]] constexpr Out narrow_cast(In const& rhs) noexcept;
 
 /** Cast numeric values without loss of precision.
  *
@@ -183,7 +207,7 @@ template<typename Out, typename In>
  * @return The value casted to a different type without loss of precision.
  */
 template<arithmetic Out, arithmetic In>
-[[nodiscard]] constexpr Out narrow_cast(In const &rhs) noexcept
+[[nodiscard]] constexpr Out narrow_cast(In const& rhs) noexcept
 {
     if constexpr (type_in_range_v<Out, In>) {
         return static_cast<Out>(rhs);
@@ -224,10 +248,28 @@ template<arithmetic Out, arithmetic In>
     }
 }
 
-template<std::integral Out, arithmetic In>
+/** Cast an integral to an unsigned integral of the same size.
+ */
+template<std::integral In>
+[[nodiscard]] constexpr std::make_unsigned_t<In> to_unsigned(In rhs) noexcept
+{
+    return static_cast<std::make_unsigned_t<In>>(rhs);
+}
+
+/** Cast an integral to an signed integral of the same size.
+ */
+template<std::integral In>
+[[nodiscard]] constexpr std::make_signed_t<In> to_signed(In rhs) noexcept
+{
+    return static_cast<std::make_signed_t<In>>(rhs);
+}
+
+/** Cast between integral types truncating or zero-extending the result.
+ */
+template<std::integral Out, std::integral In>
 [[nodiscard]] constexpr Out truncate(In rhs) noexcept
 {
-    return static_cast<Out>(rhs);
+    return static_cast<Out>(to_unsigned(rhs));
 }
 
 /** Cast a character.
@@ -376,9 +418,103 @@ template<typename T>
 }
 
 template<typename T>
-[[nodiscard]] inline std::intptr_t to_int(T *ptr) noexcept
+[[nodiscard]] std::intptr_t to_int(T *ptr) noexcept
 {
     return reinterpret_cast<std::intptr_t>(ptr);
+}
+
+template<typename T, byte_like Byte>
+[[nodiscard]] copy_cv_t<T, Byte>& implicit_cast(std::span<Byte> bytes)
+{
+    using value_type = copy_cv_t<T, Byte>;
+
+    static_assert(std::is_trivially_default_constructible_v<value_type>);
+    static_assert(std::is_trivially_destructible_v<value_type>);
+
+    if (sizeof(value_type) > bytes.size()) {
+        throw std::bad_cast();
+    }
+    hi_axiom_not_null(bytes.data());
+
+    if constexpr (alignof(value_type) != 1) {
+        if (std::bit_cast<std::uintptr_t>(bytes.data()) % alignof(value_type) != 0) {
+            throw std::bad_cast();
+        }
+    }
+
+    return *reinterpret_cast<value_type *>(bytes.data());
+}
+
+template<typename T, byte_like Byte>
+[[nodiscard]] std::span<copy_cv_t<T, Byte>> implicit_cast(std::span<Byte> bytes, size_t n)
+{
+    using value_type = copy_cv_t<T, Byte>;
+
+    static_assert(std::is_trivially_default_constructible_v<value_type>);
+    static_assert(std::is_trivially_destructible_v<value_type>);
+
+    if (sizeof(value_type) * n > bytes.size()) {
+        throw std::bad_cast();
+    }
+    hi_axiom_not_null(bytes.data());
+
+    if constexpr (alignof(value_type) != 1) {
+        if (std::bit_cast<std::uintptr_t>(bytes.data()) % alignof(value_type) != 0) {
+            throw std::bad_cast();
+        }
+    }
+
+    return {reinterpret_cast<value_type *>(bytes.data()), n};
+}
+
+template<typename T, byte_like Byte>
+[[nodiscard]] copy_cv_t<T, Byte>& implicit_cast(size_t& offset, std::span<Byte> bytes)
+{
+    using value_type = copy_cv_t<T, Byte>;
+
+    static_assert(std::is_trivially_default_constructible_v<value_type>);
+    static_assert(std::is_trivially_destructible_v<value_type>);
+
+    if (sizeof(value_type) + offset > bytes.size()) {
+        throw std::bad_cast();
+    }
+    hi_axiom_not_null(bytes.data());
+
+    hilet data = bytes.data() + offset;
+
+    if constexpr (alignof(value_type) != 1) {
+        if (std::bit_cast<std::uintptr_t>(data) % alignof(value_type) != 0) {
+            throw std::bad_cast();
+        }
+    }
+
+    offset += sizeof(value_type);
+    return *reinterpret_cast<value_type *>(data);
+}
+
+template<typename T, byte_like Byte>
+[[nodiscard]] std::span<copy_cv_t<T, Byte>> implicit_cast(size_t& offset, std::span<Byte> bytes, size_t n)
+{
+    using value_type = copy_cv_t<T, Byte>;
+
+    static_assert(std::is_trivially_default_constructible_v<value_type>);
+    static_assert(std::is_trivially_destructible_v<value_type>);
+
+    if (sizeof(value_type) * n + offset > bytes.size()) {
+        throw std::bad_cast();
+    }
+    hi_axiom_not_null(bytes.data());
+
+    hilet data = bytes.data() + offset;
+
+    if constexpr (alignof(value_type) != 1) {
+        if (std::bit_cast<std::uintptr_t>(data) % alignof(value_type) != 0) {
+            throw std::bad_cast();
+        }
+    }
+
+    offset += sizeof(value_type) * n;
+    return {reinterpret_cast<value_type *>(data), n};
 }
 
 } // namespace hi::inline v1

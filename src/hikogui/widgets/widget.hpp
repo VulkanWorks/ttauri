@@ -237,7 +237,7 @@ public:
 
     /** Request the widget to be redrawn on the next frame.
      */
-    void request_redraw() const noexcept
+    virtual void request_redraw() const noexcept
     {
         process_event({gui_event_type::window_redraw, layout().clipping_rectangle_on_window()});
     }
@@ -361,6 +361,8 @@ protected:
 
 inline widget *get_if(widget *start, widget_id id, bool include_invisible) noexcept
 {
+    hi_assert_not_null(start);
+
     if (start->id == id) {
         return start;
     }
