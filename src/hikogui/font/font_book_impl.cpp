@@ -13,7 +13,7 @@
 
 namespace hi::inline v1 {
 
-font_book &font_book::global() noexcept
+font_book& font_book::global() noexcept
 {
     if (not _global) {
         _global = std::make_unique<font_book>();
@@ -21,9 +21,7 @@ font_book &font_book::global() noexcept
     return *_global;
 }
 
-font_book::~font_book()
-{
-}
+font_book::~font_book() {}
 
 font_book::font_book()
 {
@@ -130,13 +128,10 @@ void font_book::register_font_directory(std::filesystem::path const& path, bool 
         return (item->italic == italic) and almost_equal(item->weight, weight);
     });
 
-    auto unicode_mask = hi::unicode_mask{};
+    auto char_mask = std::bitset<0x11'0000>{};
     for (auto& font : r) {
-        if (not unicode_mask.contains(font->unicode_mask)) {
-            // This font adds unicode code points.
-            unicode_mask |= font->unicode_mask;
-
-        } else {
+        if (font->char_map.update_mask(char_mask) == 0) {
+            // This font did not add any code points.
             font = nullptr;
         }
     }
@@ -153,7 +148,7 @@ void font_book::post_process() noexcept
 
     // Sort the list of fonts based on the amount of unicode code points it supports.
     std::sort(begin(_font_ptrs), end(_font_ptrs), [](hilet& lhs, hilet& rhs) {
-        return lhs->unicode_mask.size() > rhs->unicode_mask.size();
+        return lhs->char_map.count() > rhs->char_map.count();
     });
 
     hilet regular_fallback_chain = make_fallback_chain(font_weight::Regular, false);
@@ -284,26 +279,36 @@ void font_book::post_process() noexcept
     }
 
     // First try the selected font.
-    auto glyph_ids = font.find_glyph(g);
-    if (glyph_ids) {
-        _glyph_cache[key] = glyph_ids;
-        return glyph_ids;
+    if (hilet glyph_ids = font.find_glyph(g); not glyph_ids.empty()) {
+        return _glyph_cache[key] = hi::glyph_ids{font, glyph_ids};
     }
 
     // Scan fonts which are fallback to this.
     for (hilet fallback : font.fallback_chain) {
         hi_axiom_not_null(fallback);
-        if (glyph_ids = fallback->find_glyph(g)) {
-            _glyph_cache[key] = glyph_ids;
-            return glyph_ids;
+        if (hilet glyph_ids = fallback->find_glyph(g); not glyph_ids.empty()) {
+            return _glyph_cache[key] = hi::glyph_ids{*fallback, glyph_ids};
         }
     }
 
     // If all everything has failed, use the tofu block of the original font.
-    glyph_ids += glyph_id{0};
-    glyph_ids.set_font(font);
-    _glyph_cache[key] = glyph_ids;
-    return glyph_ids;
+    return _glyph_cache[key] = hi::glyph_ids{font, glyph_id{0}};
+}
+
+[[nodiscard]] font_book::estimate_run_result_type font_book::estimate_run(font const& font, gstring run) const noexcept
+{
+    auto r = estimate_run_result_type{};
+    r.reserve(run.size());
+
+    for (hilet grapheme: run) {
+        hilet glyphs = find_glyph(font, grapheme);
+        hilet &font = glyphs.font();
+
+        r.fonts.push_back(&font);
+        r.advances.push_back(font.get_advance(get<0>(glyphs)));
+    }
+
+    return r;
 }
 
 } // namespace hi::inline v1
