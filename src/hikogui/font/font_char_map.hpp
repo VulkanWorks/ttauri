@@ -9,15 +9,19 @@
 #pragma once
 
 #include "glyph_id.hpp"
-#include "../algorithm.hpp"
-#include "../utility/module.hpp"
+#include "../algorithm/algorithm.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <bitset>
 #include <cstdint>
 #include <vector>
 #include <tuple>
 #include <algorithm>
+#include <string>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.font.font_char_map);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** Character map of a font.
  *
@@ -27,7 +31,7 @@ namespace hi { inline namespace v1 {
  *
  * @ingroup font
  */
-class font_char_map {
+hi_export class font_char_map {
 public:
     constexpr font_char_map() noexcept = default;
     constexpr font_char_map(font_char_map const&) noexcept = default;
@@ -63,7 +67,7 @@ public:
     constexpr size_t update_mask(std::bitset<0x11'0000>& mask) const noexcept
     {
         auto r = 0_uz;
-        for (hilet &entry: _map) {
+        for (auto const& entry : _map) {
             // Make sure this loop is inclusive.
             for (auto cp = entry.start_code_point(); cp <= entry.end_code_point; ++cp) {
                 if (not mask.test(cp)) {
@@ -81,7 +85,7 @@ public:
      * @param end_code_point The ending code-point of the range (inclusive).
      * @param start_glyph The starting glyph of the range.
      */
-    [[nodiscard]] constexpr void add(char32_t start_code_point, char32_t end_code_point, uint16_t start_glyph) noexcept
+    constexpr void add(char32_t start_code_point, char32_t end_code_point, uint16_t start_glyph) noexcept
     {
 #ifndef NDEBUG
         _prepared = false;
@@ -89,10 +93,10 @@ public:
         hi_axiom(start_code_point <= end_code_point);
         auto todo = wide_cast<size_t>(end_code_point - start_code_point + 1);
         _count += todo;
-        hi_axiom(start_glyph + todo < 0xffff, "Only glyph_ids 0 through 0xfffe are valid");
+        hi_axiom(start_glyph + todo < 0xffff, "Only glyph-ids 0 through 0xfffe are valid");
 
         while (todo != 0) {
-            hilet doing = std::min(todo, entry_type::max_count);
+            auto const doing = std::min(todo, entry_type::max_count);
             hi_axiom(doing != 0);
 
             _map.emplace_back(start_code_point, char_cast<char32_t>(start_code_point + doing - 1), start_glyph);
@@ -115,7 +119,7 @@ public:
         }
 
         // Sort the entries in reverse order so that the lower_bound search becomes upper_bound.
-        std::sort(_map.begin(), _map.end(), [](hilet& a, hilet& b) {
+        std::sort(_map.begin(), _map.end(), [](auto const& a, auto const& b) {
             return a.end_code_point < b.end_code_point;
         });
 
@@ -125,8 +129,8 @@ public:
             hi_axiom(prev_it->end_code_point < it->start_code_point());
 
             if (mergable(*prev_it, *it)) {
-                hilet merged_count = std::min(prev_it->count() + it->count(), entry_type::max_count);
-                hilet move_count = merged_count - prev_it->count();
+                auto const merged_count = std::min(prev_it->count() + it->count(), entry_type::max_count);
+                auto const move_count = merged_count - prev_it->count();
                 hi_axiom(move_count <= entry_type::max_count);
 
                 prev_it->end_code_point += narrow_cast<char32_t>(move_count);
@@ -165,7 +169,7 @@ public:
         hi_assert(_prepared);
 #endif
 
-        if (hilet item_ptr = fast_lower_bound(std::span{_map}, char_cast<uint32_t>(code_point))) {
+        if (auto const item_ptr = fast_lower_bound(std::span{_map}, char_cast<uint32_t>(code_point))) {
             return item_ptr->get(code_point);
         }
         return {};
@@ -192,7 +196,7 @@ private:
             return wide_cast<size_t>(_count) + 1;
         }
 
-        [[nodiscard]] constexpr void set_count(size_t new_count) noexcept
+        constexpr void set_count(size_t new_count) noexcept
         {
             hi_axiom(new_count > 0);
             hi_axiom(new_count <= max_count);

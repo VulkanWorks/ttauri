@@ -10,9 +10,14 @@
 
 #include "unfair_mutex.hpp"
 #include "thread.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <thread>
+#include <atomic>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.concurrency.unfair_recursive_mutex);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** An unfair recursive-mutex
  * This is a fast implementation of a recursive-mutex which does not fairly
@@ -83,7 +88,7 @@ public:
     [[nodiscard]] bool try_lock() noexcept
     {
         // FIRST | OWNER | OTHER
-        hilet thread_id = current_thread_id();
+        auto const thread_id = current_thread_id();
 
         // The following load() is:
         // - valid-and-equal to thread_id when the OWNER has the lock.
@@ -138,7 +143,7 @@ public:
     void lock() noexcept
     {
         // FIRST | OWNER | OTHER
-        hilet thread_id = current_thread_id();
+        auto const thread_id = current_thread_id();
 
         // The following load() is:
         // - valid-and-equal to thread_id when the OWNER has the lock.
@@ -175,7 +180,7 @@ public:
         // FIRST | OWNER
 
         // Unlock must be called on the thread that locked the mutex
-        hi_axiom(recurse_lock_count());
+        hi_axiom(recurse_lock_count() != 0);
 
         if (--count == 0) {
             // FIRST

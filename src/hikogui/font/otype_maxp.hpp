@@ -5,11 +5,14 @@
 #pragma once
 
 #include "otype_utilities.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <span>
 #include <cstddef>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.font.maxp);
+
+hi_export namespace hi { inline namespace v1 {
 
 [[nodiscard]] inline auto otype_maxp_parse(std::span<std::byte const> bytes)
 {
@@ -40,8 +43,8 @@ namespace hi { inline namespace v1 {
         uint16_t num_glyphs;
     };
 
-    hilet& header = implicit_cast<header_type_05>(bytes);
-    hilet version = *header.version;
+    auto const& header = implicit_cast<header_type_05>(bytes);
+    auto const version = *header.version;
     hi_check(version == 0x00010000 || version == 0x00005000, "MAXP version must be 0.5 or 1.0");
 
     auto r = return_type{};

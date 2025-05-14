@@ -8,17 +8,20 @@
 
 #pragma once
 
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <cstddef>
 #include <span>
 #include <memory>
+
+hi_export_module(hikogui.image.pixmap_span);
 
 hi_warning_push();
 // C26459: You called an STL function 'std::copy' with a raw pointer paramter... (stl.1)
 // Using iterators adds a lot of code without any extra safety.
 hi_warning_ignore_msvc(26459);
 
-namespace hi { inline namespace v1 {
+hi_export namespace hi { inline namespace v1 {
 template<typename T, typename Allocator>
 class pixmap;
 
@@ -107,7 +110,7 @@ public:
     template<std::same_as<std::remove_const_t<value_type>> O, typename Allocator>
     [[nodiscard]] constexpr pixmap_span(pixmap<O, Allocator>&& other) = delete;
 
-    [[nodiscard]] constexpr size_type empty() const noexcept
+    [[nodiscard]] constexpr bool empty() const noexcept
     {
         return _width == 0 and _height == 0;
     }
@@ -193,8 +196,8 @@ public:
             std::copy(src.data(), src.data() + src.width() * src.height(), dst.data());
         } else {
             for (auto y = 0_uz; y != src.height(); ++y) {
-                hilet src_line = src[y];
-                hilet dst_line = dst[y];
+                auto const src_line = src[y];
+                auto const dst_line = dst[y];
                 std::copy(src_line.begin(), src_line.end(), dst_line.begin());
             }
         }

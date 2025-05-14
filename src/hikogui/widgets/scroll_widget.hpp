@@ -11,10 +11,15 @@
 #include "widget.hpp"
 #include "scroll_bar_widget.hpp"
 #include "scroll_aperture_widget.hpp"
-#include "../geometry/module.hpp"
-#include "../layout/grid_layout.hpp"
+#include "../geometry/geometry.hpp"
+#include "../layout/layout.hpp"
+#include "../macros.hpp"
+#include <coroutine>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.widgets.scroll_widget);
+
+hi_export namespace hi {
+inline namespace v1 {
 
 /** The scroll widget allows a content widget to be shown in less space than is
  * required.
@@ -43,13 +48,13 @@ namespace hi { inline namespace v1 {
  *              `axis::horizontal`, `axis::vertical` or `axis::both`.
  */
 template<axis Axis = axis::both>
-class scroll_widget final : public widget {
+class scroll_widget : public widget {
 public:
     using super = widget;
     using horizontal_scroll_bar_type = scroll_bar_widget<axis::horizontal>;
     using vertical_scroll_bar_type = scroll_bar_widget<axis::vertical>;
 
-    static constexpr hi::axis axis = Axis;
+    constexpr static hi::axis axis = Axis;
 
     ~scroll_widget() {}
 
@@ -57,30 +62,31 @@ public:
      *
      * @param parent The parent widget.
      */
-    scroll_widget(widget *parent) noexcept : super(parent)
+    scroll_widget() noexcept : super()
     {
         hi_axiom(loop::main().on_thread());
-        hi_assert_not_null(parent);
 
-        // The scroll-widget will not draw itself, only its selected content.
-        semantic_layer = parent->semantic_layer;
+        auto aperture = std::make_unique<scroll_aperture_widget>();
+        aperture->set_parent(this);
 
-        auto aperture = std::make_unique<scroll_aperture_widget>(this);
-        auto horizontal_scroll_bar = std::make_unique<horizontal_scroll_bar_type>(
-            this, aperture->content_width, aperture->aperture_width, aperture->offset_x);
-        auto vertical_scroll_bar = std::make_unique<vertical_scroll_bar_type>(
-            this, aperture->content_height, aperture->aperture_height, aperture->offset_y);
+        auto horizontal_scroll_bar =
+            std::make_unique<horizontal_scroll_bar_type>(aperture->content_width, aperture->aperture_width, aperture->offset_x);
+        horizontal_scroll_bar->set_parent(this);
+
+        auto vertical_scroll_bar =
+            std::make_unique<vertical_scroll_bar_type>(aperture->content_height, aperture->aperture_height, aperture->offset_y);
+        vertical_scroll_bar->set_parent(this);
 
         if (to_bool(axis & axis::horizontal)) {
-            minimum.copy()->width() = 0;
+            minimum->width() = 0;
         } else {
-            horizontal_scroll_bar->mode = widget_mode::collapse;
+            horizontal_scroll_bar->set_mode(widget_mode::collapse);
         }
 
         if (to_bool(axis & axis::vertical)) {
-            minimum.copy()->height() = 0;
+            minimum->height() = 0;
         } else {
-            vertical_scroll_bar->mode = widget_mode::collapse;
+            vertical_scroll_bar->set_mode(widget_mode::collapse);
         }
 
         _aperture = aperture.get();
@@ -102,13 +108,13 @@ public:
      * @return A reference to the widget that was created.
      */
     template<typename Widget, typename... Args>
-    Widget& make_widget(Args&&...args) noexcept
+    Widget& emplace(Args&&... args) noexcept
     {
-        return _aperture->make_widget<Widget>(std::forward<Args>(args)...);
+        return _aperture->emplace<Widget>(std::forward<Args>(args)...);
     }
 
     /// @privatesection
-    [[nodiscard]] generator<widget const &> children(bool include_invisible) const noexcept override
+    [[nodiscard]] generator<widget_intf&> children(bool include_invisible) noexcept override
     {
         co_yield *_aperture;
         co_yield *_vertical_scroll_bar;
@@ -132,7 +138,7 @@ public:
             _grid.set_layout(context.shape, theme().baseline_adjustment());
         }
 
-        for (hilet& cell : _grid) {
+        for (auto const& cell : _grid) {
             auto shape = cell.shape;
 
             if (cell.value.get() == _aperture) {
@@ -140,31 +146,31 @@ public:
                 // The grid cells are always ordered in row-major.
                 // This the vertical scroll bar is _grid[1] and the horizontal scroll bar is _grid[2].
                 if (not _vertical_scroll_bar->visible()) {
-                    shape.rectangle = aarectanglei{0, shape.y(), _layout.width(), shape.height()};
+                    shape.rectangle = aarectangle{0, shape.y(), _layout.width(), shape.height()};
                 }
                 if (not _horizontal_scroll_bar->visible()) {
-                    shape.rectangle = aarectanglei{shape.x(), 0, shape.width(), _layout.height()};
+                    shape.rectangle = aarectangle{shape.x(), 0, shape.width(), _layout.height()};
                 }
             }
 
-            cell.value->set_layout(context.transform(shape, 0.0f));
+            cell.value->set_layout(context.transform(shape, transform_command::level));
         }
     }
 
     void draw(draw_context const& context) noexcept override
     {
-        if (*mode > widget_mode::invisible) {
-            for (hilet& cell : _grid) {
+        if (mode() > widget_mode::invisible) {
+            for (auto const& cell : _grid) {
                 cell.value->draw(context);
             }
         }
     }
 
-    [[nodiscard]] hitbox hitbox_test(point2i position) const noexcept override
+    [[nodiscard]] hitbox hitbox_test(point2 position) const noexcept override
     {
         hi_axiom(loop::main().on_thread());
 
-        if (*mode >= widget_mode::partial) {
+        if (mode() >= widget_mode::partial) {
             auto r = _aperture->hitbox_test_from_parent(position);
             r = _horizontal_scroll_bar->hitbox_test_from_parent(position, r);
             r = _vertical_scroll_bar->hitbox_test_from_parent(position, r);
@@ -182,9 +188,9 @@ public:
 private:
     grid_layout<std::unique_ptr<widget>> _grid;
 
-    scroll_aperture_widget *_aperture;
-    horizontal_scroll_bar_type *_horizontal_scroll_bar;
-    vertical_scroll_bar_type *_vertical_scroll_bar;
+    scroll_aperture_widget* _aperture;
+    horizontal_scroll_bar_type* _horizontal_scroll_bar;
+    vertical_scroll_bar_type* _vertical_scroll_bar;
 };
 
 /** Vertical scroll widget.
@@ -205,4 +211,5 @@ using vertical_scroll_widget = scroll_widget<axis::vertical>;
  */
 using horizontal_scroll_widget = scroll_widget<axis::horizontal>;
 
-}} // namespace hi::v1
+} // namespace v1
+} // namespace hi::v1

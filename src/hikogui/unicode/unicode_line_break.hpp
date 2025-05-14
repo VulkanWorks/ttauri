@@ -7,87 +7,22 @@
 
 #pragma once
 
-#include "unicode_general_category.hpp"
-#include "unicode_grapheme_cluster_break.hpp"
-#include "unicode_east_asian_width.hpp"
 #include "unicode_break_opportunity.hpp"
-#include "../utility/module.hpp"
+#include "ucd_general_categories.hpp"
+#include "ucd_grapheme_cluster_breaks.hpp"
+#include "ucd_line_break_classes.hpp"
+#include "ucd_east_asian_widths.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <cstdint>
 #include <vector>
 #include <algorithm>
 #include <numeric>
 
-// Windows.h adds a "IN" macro that is used in this enum.
-#ifdef IN
-#undef IN
-#endif
+hi_export_module(hikogui.unicode.unicode_line_break);
 
-namespace hi::inline v1 {
 
-/** Unicode line break class.
- *
- * See "AUX14: Unicode line break algorithm"
- * http://unicode.org/reports/tr14/
- *
- */
-enum class unicode_line_break_class : uint8_t {
-    BK, // Mandatory Break NL, PARAGRAPH SEPARATOR Cause a line break (after)
-    CR, // Carriage Return CR Cause a line break (after), except between CR and LF
-    LF, // Line Feed LF Cause a line break (after)
-    CM, // Combining Mark Combining marks, control codes Prohibit a line break between the character and the preceding character
-    NL, // Next Line NEL Cause a line break (after)
-    SG, // Surrogate Surrogates Do not occur in well-formed text
-    WJ, // Word Joiner WJ Prohibit line breaks before and after
-    ZW, // Zero Width Space ZWSP Provide a break opportunity
-    GL, // Non-breaking (Glue) CGJ, NBSP, ZWNBSP Prohibit line breaks before and after
-    SP, // Space SPACE Enable indirect line breaks
-    ZWJ, // Zero Width Joiner Zero Width Joiner Prohibit line breaks within joiner sequences Break Opportunities
-
-    B2, // Break Opportunity Before and After Em dash Provide a line break opportunity before and after the character
-    BA, // Break After Spaces, hyphens Generally provide a line break opportunity after the character
-    BB, // Break Before Punctuation used in dictionaries Generally provide a line break opportunity before the character
-    HY, // Hyphen HYPHEN-MINUS Provide a line break opportunity after the character, except in numeric context
-    CB, // Contingent Break Opportunity Inline objects Provide a line break opportunity contingent on additional information
-        // Characters Prohibiting Certain Breaks
-
-    CL, // Close Punctuation Prohibit line breaks before
-    CP, // Close Parenthesis ')', ']' Prohibit line breaks before
-    EX, // Exclamation/Interrogation '!', '?', etc. Prohibit line breaks before
-    IN, // Inseparable Leaders Allow only indirect line breaks between pairs
-    NS, // Nonstarter. Allow only indirect line breaks before
-    OP, // Open Punctuation '(', '[', '{', etc. Prohibit line breaks after
-    QU, // Quotation Quotation marks Act like they are both opening and closing Numeric Context
-
-    IS, // Infix Numeric Separator . , Prevent breaks after any and before numeric
-    NU, // Numeric Digits Form numeric expressions for line breaking purposes
-    PO, // Postfix Numeric. Do not break following a numeric expression
-    PR, // Prefix Numeric. Do not break in front of a numeric expression
-    SY, // Symbols Allowing Break After / Prevent a break before, and allow a break after XX Characters
-
-    AI, // Ambiguous (Alphabetic or Ideographic) Characters with Ambiguous East Asian Width Act like AL when the resolved EAW
-        // is N; XXwise, act as ID
-    AL, // Alphabetic Alphabets and regular symbols Are alphabetic characters or symbols that are used with alphabetic
-        // characters
-    CJ, // Conditional Japanese Starter Small kana Treat as NS or ID for strict or normal breaking.
-    EB, // Emoji Base All emoji allowing modifiers Do not break from following Emoji Modifier
-    EM, // Emoji Modifier Skin tone modifiers Do not break from preceding Emoji Base
-    H2, // Hangul LV Syllable Hangul Form Korean syllable blocks
-    H3, // Hangul LVT Syllable Hangul Form Korean syllable blocks
-    HL, // Hebrew Letter Hebrew Do not break around a following hyphen; otherwise act as Alphabetic
-    ID, // Ideographic Ideographs Break before or after, except in some numeric context
-    JL, // Hangul
-    L, // Jamo Conjoining jamo Form Korean syllable blocks
-    JV, // Hangul
-    V, // Jamo Conjoining jamo Form Korean syllable blocks
-    JT, // Hangul
-    T, // Jamo Conjoining jamo Form Korean syllable blocks
-    RI, // Regional Indicator REGIONAL INDICATOR SYMBOL LETTER A..Z Keep pairs together.For pairs, break before and after XX
-        // classes
-    SA, // Complex Context Dependent(South East Asian) South East Asian :Thai,Lao,Khmer Provide a line break opportunity
-        // contingent on additional, language - specific context analysis
-    XX, // Unknown Most unassigned, private - use Have as yet unknown line breaking behavior or unassigned code positions
-};
-
+hi_export namespace hi::inline v1 {
 namespace detail {
 
 /** Combined unicode_line_break_class and unicode_line_break_opportunity.
@@ -144,19 +79,21 @@ using unicode_line_break_info_vector = std::vector<unicode_line_break_info>;
 using unicode_line_break_info_iterator = unicode_line_break_info_vector::iterator;
 using unicode_line_break_info_const_iterator = unicode_line_break_info_vector::const_iterator;
 
-template<typename It, typename ItEnd, typename DescriptionFunc>
+template<typename It, typename ItEnd, typename CodePointFunc>
 [[nodiscard]] constexpr std::vector<unicode_line_break_info>
-unicode_LB1(It first, ItEnd last, DescriptionFunc const& description_func) noexcept
+unicode_LB1(It first, ItEnd last, CodePointFunc const& code_point_func) noexcept
 {
     auto r = std::vector<unicode_line_break_info>{};
     r.reserve(std::distance(first, last));
 
     for (auto it = first; it != last; ++it) {
-        hilet& description = description_func(*it);
-        hilet break_class = description.line_break_class();
-        hilet general_category = description.general_category();
+        auto const code_point = code_point_func(*it);
+        auto const east_asian_width = ucd_get_east_asian_width(code_point);
+        auto const break_class = ucd_get_line_break_class(code_point);
+        auto const general_category = ucd_get_general_category(code_point);
+        auto const grapheme_cluster_break = ucd_get_grapheme_cluster_break(code_point);
 
-        hilet resolved_break_class = [&]() {
+        auto const resolved_break_class = [&]() {
             switch (break_class) {
                 using enum unicode_line_break_class;
             case AI:
@@ -175,14 +112,14 @@ unicode_LB1(It first, ItEnd last, DescriptionFunc const& description_func) noexc
         r.emplace_back(
             resolved_break_class,
             general_category == unicode_general_category::Cn,
-            description.grapheme_cluster_break() == unicode_grapheme_cluster_break::Extended_Pictographic,
-            description.east_asian_width());
+            grapheme_cluster_break == unicode_grapheme_cluster_break::Extended_Pictographic,
+            east_asian_width);
     }
 
     return r;
 }
 
-[[nodiscard]] constexpr void unicode_LB2_3(unicode_break_vector& opportunities) noexcept
+constexpr void unicode_LB2_3(unicode_break_vector& opportunities) noexcept
 {
     hi_axiom(not opportunities.empty());
     // LB2
@@ -204,8 +141,8 @@ constexpr void unicode_LB_walk(
     }
 
     auto cur = infos.begin();
-    hilet last = infos.end() - 1;
-    hilet last2 = infos.end();
+    auto const last = infos.end() - 1;
+    auto const last2 = infos.end();
     auto opportunity = opportunities.begin() + 1;
 
     auto cur_sp_class = XX;
@@ -213,9 +150,9 @@ constexpr void unicode_LB_walk(
     auto prev_class = XX;
     auto num_ri = 0_uz;
     while (cur != last) {
-        hilet next = cur + 1;
-        hilet cur_class = unicode_line_break_class{*cur};
-        hilet next2_class = cur + 2 == last2 ? XX : unicode_line_break_class{*(cur + 2)};
+        auto const next = cur + 1;
+        auto const cur_class = unicode_line_break_class{*cur};
+        auto const next2_class = cur + 2 == last2 ? XX : unicode_line_break_class{*(cur + 2)};
 
         // Keep track of classes followed by zero or more SP.
         if (cur_class != SP) {
@@ -256,7 +193,7 @@ constexpr void unicode_LB_walk(
 constexpr void unicode_LB4_8a(unicode_break_vector& opportunities, std::vector<unicode_line_break_info> const& infos) noexcept
 {
     unicode_LB_walk(
-        opportunities, infos, [](hilet prev, hilet cur, hilet next, hilet next2, hilet cur_sp, hilet cur_nu, hilet num_ri) {
+        opportunities, infos, [](auto const prev, auto const cur, auto const next, auto const next2, auto const cur_sp, auto const cur_nu, auto const num_ri) {
             using enum unicode_break_opportunity;
             using enum unicode_line_break_class;
             if (*cur == BK) {
@@ -289,12 +226,12 @@ constexpr void unicode_LB9(unicode_break_vector& opportunities, std::vector<unic
     }
 
     auto cur = infos.begin();
-    hilet last = infos.end() - 1;
+    auto const last = infos.end() - 1;
     auto opportunity = opportunities.begin() + 1;
 
     auto X = XX;
     while (cur != last) {
-        hilet next = cur + 1;
+        auto const next = cur + 1;
 
         if ((*cur == CM or *cur == ZWJ) and X != XX) {
             // Treat all CM/ZWJ as X (if there is an X).
@@ -334,7 +271,7 @@ constexpr void unicode_LB10(std::vector<unicode_line_break_info>& infos) noexcep
 constexpr void unicode_LB11_31(unicode_break_vector& opportunities, std::vector<unicode_line_break_info> const& infos) noexcept
 {
     unicode_LB_walk(
-        opportunities, infos, [&](hilet prev, hilet cur, hilet next, hilet next2, hilet cur_sp, hilet cur_nu, hilet num_ri) {
+        opportunities, infos, [&](auto const prev, auto const cur, auto const next, auto const next2, auto const cur_sp, auto const cur_nu, auto const num_ri) {
             using enum unicode_break_opportunity;
             using enum unicode_line_break_class;
             using enum unicode_east_asian_width;
@@ -438,10 +375,10 @@ unicode_LB_width(std::vector<float>::const_iterator first, std::vector<float>::c
     auto rfirst = std::make_reverse_iterator(last);
     auto rlast = std::make_reverse_iterator(first);
 
-    auto it = std::find_if(rfirst, rlast, [](hilet& width) {
+    auto it = std::find_if(rfirst, rlast, [](auto const& width) {
         return width >= 0.0;
     });
-    return std::accumulate(it, rlast, 0.0f, [](float acc, hilet& width) {
+    return std::accumulate(it, rlast, 0.0f, [](float acc, auto const& width) {
         return acc + abs(width);
     });
 }
@@ -550,7 +487,7 @@ unicode_LB_width_check(std::vector<float> const& widths, std::vector<size_t> con
         ++opportunity_it;
         ++width_it;
     }
-    hi_unreachable();
+    std::unreachable();
 }
 
 [[nodiscard]] constexpr unicode_break_const_iterator unicode_LB_slow_fit_line(
@@ -564,8 +501,8 @@ unicode_LB_width_check(std::vector<float> const& widths, std::vector<size_t> con
     // Carefully look forward for a break opportunity.
     auto it = end_of_line;
     while (true) {
-        hilet num_characters = std::distance(first, it + 1);
-        hilet line_width = unicode_LB_width(first_width, first_width + num_characters);
+        auto const num_characters = std::distance(first, it + 1);
+        auto const line_width = unicode_LB_width(first_width, first_width + num_characters);
 
         if (line_width <= maximum_line_width) {
             if (*it == mandatory) {
@@ -583,7 +520,7 @@ unicode_LB_width_check(std::vector<float> const& widths, std::vector<size_t> con
 
         ++it;
     }
-    hi_unreachable();
+    std::unreachable();
 }
 
 [[nodiscard]] constexpr unicode_break_const_iterator
@@ -624,7 +561,7 @@ unicode_LB_finish_fit_line(unicode_break_const_iterator first, unicode_break_con
         opportunity_eol = unicode_LB_slow_fit_line(opportunity_it, opportunity_eol, width_it, maximum_line_width);
         opportunity_eol = unicode_LB_finish_fit_line(opportunity_it, opportunity_eol);
 
-        hilet num_characters = std::distance(opportunity_it, opportunity_eol);
+        auto const num_characters = std::distance(opportunity_it, opportunity_eol);
         r.push_back(num_characters);
         opportunity_it += num_characters;
         width_it += num_characters;
@@ -645,7 +582,7 @@ unicode_LB_finish_fit_line(unicode_break_const_iterator first, unicode_break_con
 unicode_LB_maximum_width(unicode_break_vector const& opportunities, std::vector<float> const& char_widths)
 {
     auto line_lengths = detail::unicode_LB_mandatory_lines(opportunities);
-    hilet width = detail::unicode_LB_width(char_widths, line_lengths);
+    auto const width = detail::unicode_LB_width(char_widths, line_lengths);
     return {width, std::move(line_lengths)};
 }
 
@@ -661,7 +598,7 @@ unicode_LB_maximum_width(unicode_break_vector const& opportunities, std::vector<
 unicode_LB_minimum_width(unicode_break_vector const& opportunities, std::vector<float> const& char_widths)
 {
     auto line_lengths = detail::unicode_LB_optional_lines(opportunities);
-    hilet width = detail::unicode_LB_width(char_widths, line_lengths);
+    auto const width = detail::unicode_LB_width(char_widths, line_lengths);
     return {width, std::move(line_lengths)};
 }
 
@@ -678,7 +615,7 @@ unicode_LB_minimum_width(unicode_break_vector const& opportunities, std::vector<
 unicode_LB_width(unicode_break_vector const& opportunities, std::vector<float> const& char_widths, float maximum_line_width)
 {
     auto line_lengths = detail::unicode_LB_fit_lines(opportunities, char_widths, maximum_line_width);
-    hilet width = detail::unicode_LB_width(char_widths, line_lengths);
+    auto const width = detail::unicode_LB_width(char_widths, line_lengths);
     return {width, std::move(line_lengths)};
 }
 
@@ -688,17 +625,17 @@ unicode_LB_width(unicode_break_vector const& opportunities, std::vector<float> c
  *
  * @param first An iterator to the first character.
  * @param last An iterator to the last character.
- * @param description_func A function to get a reference to unicode_description from a character.
+ * @param code_point_func A function to get the code-point of a character.
  * @return A list of unicode_break_opportunity.
  */
-template<typename It, typename ItEnd, typename DescriptionFunc>
+template<typename It, typename ItEnd, typename CodePointFunc>
 [[nodiscard]] inline unicode_break_vector
-unicode_line_break(It first, ItEnd last, DescriptionFunc const& description_func) noexcept
+unicode_line_break(It first, ItEnd last, CodePointFunc const& code_point_func) noexcept
 {
     auto size = narrow_cast<size_t>(std::distance(first, last));
     auto r = unicode_break_vector{size + 1, unicode_break_opportunity::unassigned};
 
-    auto infos = detail::unicode_LB1(first, last, description_func);
+    auto infos = detail::unicode_LB1(first, last, code_point_func);
     detail::unicode_LB2_3(r);
     detail::unicode_LB4_8a(r, infos);
     detail::unicode_LB9(r, infos);

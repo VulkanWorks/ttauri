@@ -7,16 +7,23 @@
 
 #pragma once
 
-#include "point.hpp"
-#include "axis_aligned_rectangle.hpp"
+#include "point2.hpp"
+#include "aarectangle.hpp"
 #include "quad.hpp"
+#include "../macros.hpp"
+#include <exception>
+#include <compare>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.geometry : circle);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** A type defining a 2D circle.
  */
 class circle {
 public:
+    using array_type = f32x4;
+    
     constexpr circle(circle const& other) noexcept = default;
     constexpr circle(circle&& other) noexcept = default;
     constexpr circle& operator=(circle const& other) noexcept = default;
@@ -51,10 +58,10 @@ public:
 
     [[nodiscard]] constexpr circle(aarectangle square) noexcept
     {
-        hilet square_ = f32x4{square};
+        auto const square_ = f32x4{square};
 
         // center=(p3 + p0)/2, radius=(p3 - p0)/2
-        _v = (addsub<0b0011>(square_.zwzw(), square_.xyxy()) * 0.5f).xy0w();
+        _v = (addsub_mask<0b0011>(square_.zwzw(), square_.xyxy()) * array_type::broadcast(0.5f)).xy0w();
         hi_axiom(holds_invariant());
     }
 
@@ -85,17 +92,17 @@ public:
 
     [[nodiscard]] constexpr friend circle operator+(circle const& lhs, float rhs) noexcept
     {
-        return circle{lhs._v + insert<3>(f32x4{}, rhs)};
+        return circle{lhs._v + f32x4{0.0f, 0.0f, 0.0f, rhs}};
     }
 
     [[nodiscard]] constexpr friend circle operator-(circle const& lhs, float rhs) noexcept
     {
-        return circle{lhs._v - insert<3>(f32x4{}, rhs)};
+        return circle{lhs._v - f32x4{0.0f, 0.0f, 0.0f, rhs}};
     }
 
     [[nodiscard]] constexpr friend circle operator*(circle const& lhs, float rhs) noexcept
     {
-        return circle{lhs._v * insert<3>(f32x4::broadcast(1.0f), rhs)};
+        return circle{lhs._v * f32x4{1.0f, 1.0f, 1.0f, rhs}};
     }
 
     [[nodiscard]] constexpr friend point3 midpoint(circle const& rhs) noexcept
@@ -105,8 +112,8 @@ public:
 
     [[nodiscard]] constexpr friend aarectangle bounding_rectangle(circle const& rhs) noexcept
     {
-        hilet p = rhs._v.xyxy();
-        hilet r = neg<0b0011>(rhs._v.wwww());
+        auto const p = rhs._v.xyxy();
+        auto const r = neg_mask<0b0011>(rhs._v.wwww());
         return aarectangle{p + r};
     }
 
@@ -118,7 +125,7 @@ public:
      */
     [[nodiscard]] friend constexpr circle align(aarectangle haystack, circle needle, alignment alignment) noexcept
     {
-        hilet x = [&] {
+        auto const x = [&] {
             if (alignment == horizontal_alignment::left) {
                 return haystack.left() + needle.radius();
 
@@ -133,7 +140,7 @@ public:
             }
         }();
 
-        hilet y = [&] {
+        auto const y = [&] {
             if (alignment == vertical_alignment::bottom) {
                 return haystack.bottom() + needle.radius();
 

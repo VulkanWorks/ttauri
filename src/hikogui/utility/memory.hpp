@@ -5,14 +5,22 @@
 #pragma once
 
 #include "math.hpp"
+#include "../macros.hpp"
 #include "concepts.hpp"
+#include "exception.hpp"
+#include "terminate.hpp"
+#include "cast.hpp"
+#include <cstring>
 #include <concepts>
 #include <memory>
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <type_traits>
+#include <bit>
 #include <string.h>
+
+hi_export_module(hikogui.utility.memory);
 
 hi_warning_push();
 // C26474: Don't cast between pointer types when the conversion could be implicit (type.1).
@@ -22,7 +30,33 @@ hi_warning_ignore_msvc(26474);
 // Can't include cast.hpp for highlevel casts.
 hi_warning_ignore_msvc(26472);
 
-namespace hi::inline v1 {
+hi_export namespace hi::inline v1 {
+
+/** make_unique with CTAD (Class Template Argument Deduction)
+ *
+ * @tparam T A class template type.
+ * @param args The arguments forwarded to the constructor.
+ * @return A std::unique_ptr<ctad_t<T>> to an object.
+ */
+template<template<typename...> typename T, typename... Args>
+[[nodiscard]] auto make_unique_ctad(Args &&...args)
+{
+    using deduced_type = decltype(T{std::forward<Args>(args)...});
+    return std::make_unique<deduced_type>(std::forward<Args>(args)...);
+}
+
+/** make_shared with CTAD (Class Template Argument Deduction)
+ *
+ * @tparam T A class template type.
+ * @param args The arguments forwarded to the constructor.
+ * @return A std::shared_ptr<ctad_t<T>> to an object.
+ */
+template<template<typename...> typename T, typename... Args>
+[[nodiscard]] auto make_shared_ctad(Args &&...args)
+{
+    using deduced_type = decltype(T{std::forward<Args>(args)...});
+    return std::make_shared<deduced_type>(std::forward<Args>(args)...);
+}
 
 [[nodiscard]] bool equal_ptr(auto *p1, auto *p2) noexcept
 {
@@ -171,14 +205,14 @@ constexpr bool is_aligned(T *p)
 template<typename T>
 constexpr T *ceil(T *ptr, std::size_t alignment) noexcept
 {
-    hilet aligned_byte_offset = ceil(reinterpret_cast<uintptr_t>(ptr), wide_cast<uintptr_t>(alignment));
+    auto const aligned_byte_offset = ceil(reinterpret_cast<uintptr_t>(ptr), wide_cast<uintptr_t>(alignment));
     return reinterpret_cast<T *>(aligned_byte_offset);
 }
 
 template<typename T>
 constexpr T *floor(T *ptr, std::size_t alignment) noexcept
 {
-    hilet aligned_byte_offset = floor(reinterpret_cast<uintptr_t>(ptr), wide_cast<uintptr_t>(alignment));
+    auto const aligned_byte_offset = floor(reinterpret_cast<uintptr_t>(ptr), wide_cast<uintptr_t>(alignment));
     return reinterpret_cast<T *>(aligned_byte_offset);
 }
 
@@ -251,7 +285,7 @@ inline std::shared_ptr<Value> try_make_shared(Map& map, Key key, Args... args)
 {
     std::shared_ptr<Value> value;
 
-    hilet i = map.find(key);
+    auto const i = map.find(key);
     if (i == map.end()) {
         value = std::make_shared<Value>(std::forward<Args>(args)...);
         map.insert_or_assign(key, value);
@@ -299,11 +333,11 @@ template<numeric T>
 }
 
 template<numeric T, byte_like B>
-[[nodiscard]] constexpr void unaligned_store(T src, B *dst) noexcept
+constexpr void unaligned_store(T src, B *dst) noexcept
 {
     using unsigned_type = std::make_unsigned_t<T>;
 
-    hilet src_ = static_cast<unsigned_type>(src);
+    auto const src_ = static_cast<unsigned_type>(src);
 
     if (not std::is_constant_evaluated()) {
         std::memcpy(dst, &src, sizeof(T));
@@ -324,13 +358,13 @@ template<numeric T, byte_like B>
 }
 
 template<numeric T>
-[[nodiscard]] inline void unaligned_store(T src, void *dst) noexcept
+void unaligned_store(T src, void *dst) noexcept
 {
     return unaligned_store(src, reinterpret_cast<std::byte *>(dst));
 }
 
-template<numeric T>
-[[nodiscard]] hi_force_inline constexpr void store_or(T src, uint8_t *dst) noexcept
+template<std::integral T>
+hi_force_inline constexpr void store_or(T src, uint8_t *dst) noexcept
 {
     hi_axiom_not_null(dst);
 

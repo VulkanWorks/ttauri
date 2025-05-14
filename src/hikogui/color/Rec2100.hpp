@@ -9,10 +9,14 @@
 #pragma once
 
 #include "Rec2020.hpp"
+#include "../geometry/geometry.hpp"
+#include "../macros.hpp"
 #include <cmath>
 #include <array>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.color.Rec2100);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** Rec.2100 to XYZ color space conversion matrix.
  * @ingroup color
@@ -38,7 +42,7 @@ constexpr matrix3 XYZ_to_Rec2100 = XYZ_to_Rec2020;
     constexpr float m1 = 0.1593017578125f;
     constexpr float m2 = 78.84375;
 
-    hilet Lm1 = std::pow(L, m1);
+    auto const Lm1 = std::pow(L, m1);
 
     return std::pow((c1 + c2 * Lm1) / (1.0f + c3 * Lm1), m2);
 }
@@ -57,7 +61,7 @@ constexpr matrix3 XYZ_to_Rec2100 = XYZ_to_Rec2020;
     constexpr float m1 = 0.1593017578125f;
     constexpr float m2 = 78.84375;
 
-    hilet Nm2 = std::pow(N, 1.0f / m2);
+    auto const Nm2 = std::pow(N, 1.0f / m2);
 
     return std::pow((Nm2 - c1) / (c2 - c3 * Nm2), 1.0f / m1);
 }

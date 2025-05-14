@@ -3,9 +3,13 @@
 
 #pragma once
 
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../concurrency/concurrency.hpp"
+#include "../macros.hpp"
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.GFX : gfx_system_globals);
+
+hi_export namespace hi::inline v1 {
 
 class gfx_system;
 

@@ -6,11 +6,13 @@
 
 #include "otype_utilities.hpp"
 #include "font_weight.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
 #include <span>
 #include <cstddef>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.font.otype_os2);
+
+hi_export namespace hi { inline namespace v1 {
 
 [[nodiscard]] inline auto otype_parse_os2(std::span<std::byte const> bytes, float em_scale)
 {
@@ -71,7 +73,7 @@ namespace hi { inline namespace v1 {
     };
 
     struct return_type {
-        font_weight weight = font_weight::Medium;
+        font_weight weight = font_weight::medium;
         bool condensed = false;
         bool serif = false;
         bool monospace = false;
@@ -80,24 +82,24 @@ namespace hi { inline namespace v1 {
         float cap_height = 0.0f;
     };
 
-    hilet& header = implicit_cast<header_type_0>(bytes);
+    auto const& header = implicit_cast<header_type_0>(bytes);
     hi_check(*header.version <= 5, "'OS/2' version must be between 0 and 5");
 
     auto r = return_type{};
 
-    hilet weight_value = *header.weight_class;
+    auto const weight_value = *header.weight_class;
     if (weight_value >= 1 && weight_value <= 1000) {
         r.weight = font_weight_from_int(weight_value);
     }
 
-    hilet width_value = *header.width_class;
+    auto const width_value = *header.width_class;
     if (width_value >= 1 && width_value <= 4) {
         r.condensed = true;
     } else if (width_value >= 5 && width_value <= 9) {
         r.condensed = false;
     }
 
-    hilet serif_value = header.panose.serif_style;
+    auto const serif_value = header.panose.serif_style;
     if ((serif_value >= 2 && serif_value <= 10) || (serif_value >= 14 && serif_value <= 15)) {
         r.serif = true;
     } else if (serif_value >= 11 && serif_value <= 13) {
@@ -109,34 +111,34 @@ namespace hi { inline namespace v1 {
     // The table below uses the integer value as an indication of boldness.
     switch (header.panose.weight) {
     case 2:
-        r.weight = font_weight::Thin;
+        r.weight = font_weight::thin;
         break;
     case 3:
-        r.weight = font_weight::ExtraLight;
+        r.weight = font_weight::extra_light;
         break;
     case 4:
-        r.weight = font_weight::Light;
+        r.weight = font_weight::light;
         break;
     case 5:
-        r.weight = font_weight::Regular;
+        r.weight = font_weight::regular;
         break;
     case 6:
-        r.weight = font_weight::Medium;
+        r.weight = font_weight::medium;
         break;
     case 7:
-        r.weight = font_weight::SemiBold;
+        r.weight = font_weight::semi_bold;
         break;
     case 8:
-        r.weight = font_weight::Bold;
+        r.weight = font_weight::bold;
         break;
     case 9:
-        r.weight = font_weight::ExtraBold;
+        r.weight = font_weight::extra_bold;
         break;
     case 10:
-        r.weight = font_weight::Black;
+        r.weight = font_weight::black;
         break;
     case 11:
-        r.weight = font_weight::ExtraBlack;
+        r.weight = font_weight::extra_black;
         break;
     default:
         break;
@@ -162,7 +164,7 @@ namespace hi { inline namespace v1 {
         break;
     }
 
-    hilet letterform_value = header.panose.letterform;
+    auto const letterform_value = header.panose.letterform;
     if (letterform_value >= 2 && letterform_value <= 8) {
         r.italic = false;
     } else if (letterform_value >= 9 && letterform_value <= 15) {
@@ -170,7 +172,7 @@ namespace hi { inline namespace v1 {
     }
 
     if (*header.version >= 2) {
-        hilet &header_v2 = implicit_cast<header_type_2>(bytes);
+        auto const &header_v2 = implicit_cast<header_type_2>(bytes);
 
         r.x_height = header_v2.x_height * em_scale;
         r.cap_height = header_v2.cap_height * em_scale;

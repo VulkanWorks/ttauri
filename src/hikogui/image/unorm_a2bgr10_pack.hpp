@@ -8,17 +8,22 @@
 
 #pragma once
 
-#include "../SIMD/module.hpp"
+#include "../macros.hpp"
+#include <hikocpu/hikocpu.hpp>
 #include <algorithm>
+#include <bit>
+#include <cstdint>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.image.unorm_a2bgr10_pack);
+
+hi_export namespace hi::inline v1 {
 
 //[[nodiscard]] constexpr uint32_t make_unorm_a2bgr10_pack_value(f32x4 const &rhs) noexcept
 //{
-//    hilet r = static_cast<uint32_t>(std::clamp(rhs.r, 0.0f, 1.0f) * 1023.0f);
-//    hilet g = static_cast<uint32_t>(std::clamp(rhs.g, 0.0f, 1.0f) * 1023.0f);
-//    hilet b = static_cast<uint32_t>(std::clamp(rhs.b, 0.0f, 1.0f) * 1023.0f);
-//    hilet a = static_cast<uint32_t>(std::clamp(rhs.a, 0.0f, 1.0f) * 3.0f);
+//    auto const r = static_cast<uint32_t>(std::clamp(rhs.r, 0.0f, 1.0f) * 1023.0f);
+//    auto const g = static_cast<uint32_t>(std::clamp(rhs.g, 0.0f, 1.0f) * 1023.0f);
+//    auto const b = static_cast<uint32_t>(std::clamp(rhs.b, 0.0f, 1.0f) * 1023.0f);
+//    auto const a = static_cast<uint32_t>(std::clamp(rhs.a, 0.0f, 1.0f) * 3.0f);
 //    return (a << 30) | (b << 20) | (g << 10) | r;
 //}
 

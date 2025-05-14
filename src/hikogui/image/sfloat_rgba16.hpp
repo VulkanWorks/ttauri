@@ -9,23 +9,27 @@
 #pragma once
 
 #include "pixmap_span.hpp"
-#include "../color/module.hpp"
-#include "../geometry/module.hpp"
-#include "../SIMD/module.hpp"
-#include "../utility/module.hpp"
+#include "../color/color.hpp"
+#include "../geometry/geometry.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
+#include <hikocpu/hikocpu.hpp>
 #include <algorithm>
 #include <bit>
+#include <cstdint>
 #include <array>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.image.sfloat_rgba16);
 
-/** 4 x float16 pixel format.
+hi_export namespace hi::inline v1 {
+
+/** 4 x half pixel format.
  *
  * @ingroup image
  */
 class sfloat_rgba16 {
     // Red, Green, Blue, Alpha in binary16 (native endian).
-    std::array<float16, 4> v;
+    std::array<half, 4> v;
 
 public:
     constexpr sfloat_rgba16() noexcept : v() {}
@@ -88,46 +92,9 @@ public:
 constexpr void fill(pixmap_span<sfloat_rgba16> image, f32x4 color) noexcept
 {
     for (std::size_t y = 0; y != image.height(); ++y) {
-        hilet row = image[y];
+        auto const row = image[y];
         for (std::size_t x = 0; x != image.width(); ++x) {
             row[x] = color;
-        }
-    }
-}
-
-inline void composit(pixmap_span<sfloat_rgba16> under, pixmap_span<sfloat_rgba16 const> over) noexcept
-{
-    hi_assert(over.height() >= under.height());
-    hi_assert(over.width() >= under.width());
-
-    for (auto y = 0_uz; y != under.height(); ++y) {
-        hilet over_line = over[y];
-        hilet under_line = under[y];
-        for (auto x = 0_uz; x != under.width(); ++x) {
-            hilet &overPixel = over_line[x];
-            auto &underPixel = under_line[x];
-
-            underPixel = composit(static_cast<f16x4>(underPixel), static_cast<f16x4>(overPixel));
-        }
-    }
-}
-
-inline void composit(pixmap_span<sfloat_rgba16> under, color over, pixmap_span<uint8_t const> mask) noexcept
-{
-    hi_assert(mask.height() >= under.height());
-    hi_assert(mask.width() >= under.width());
-
-    auto mask_pixel = color{1.0f, 1.0f, 1.0f, 1.0f};
-
-    for (auto y = 0_uz; y != under.height(); ++y) {
-        hilet mask_line = mask[y];
-        hilet under_line = under[y];
-        for (auto x = 0_uz; x != under.width(); ++x) {
-            hilet mask_value = mask_line[x] / 255.0f;
-            mask_pixel.a() = mask_value;
-
-            auto &pixel = under_line[x];
-            pixel = composit(static_cast<color>(pixel), over * mask_pixel);
         }
     }
 }

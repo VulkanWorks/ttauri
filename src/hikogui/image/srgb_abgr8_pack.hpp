@@ -9,10 +9,16 @@
 #pragma once
 
 #include "sfloat_rgba16.hpp"
-#include "../color/module.hpp"
+#include "../color/color.hpp"
+#include "../macros.hpp"
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <cstdint>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.image.srgb_abgr8_pack);
+
+hi_export namespace hi::inline v1 {
 
 /** 4 x uint8_t pixel packed format with sRGB transfer function.
  *
@@ -41,24 +47,24 @@ public:
 
     //constexpr srgb_abgr8_pack(sfloat_rgba16 const &rhs) noexcept
     //{
-    //    hilet &rhs_v = rhs.get();
+    //    auto const &rhs_v = rhs.get();
     //
-    //    hilet r = sRGB_linear16_to_gamma8(rhs_v[0].get());
-    //    hilet g = sRGB_linear16_to_gamma8(rhs_v[1].get());
-    //    hilet b = sRGB_linear16_to_gamma8(rhs_v[2].get());
-    //    hilet a = static_cast<uint8_t>(std::clamp(rhs_v[3] * 255.0f, 0.0f, 255.0f));
+    //    auto const r = sRGB_linear16_to_gamma8(rhs_v[0].get());
+    //    auto const g = sRGB_linear16_to_gamma8(rhs_v[1].get());
+    //    auto const b = sRGB_linear16_to_gamma8(rhs_v[2].get());
+    //    auto const a = static_cast<uint8_t>(std::clamp(rhs_v[3] * 255.0f, 0.0f, 255.0f));
     //    v = (static_cast<uint32_t>(a) << 24) | (static_cast<uint32_t>(b) << 16) | (static_cast<uint32_t>(g) << 8) |
     //        static_cast<uint32_t>(r);
     //}
 
     //constexpr srgb_abgr8_pack &operator=(sfloat_rgba16 const &rhs) noexcept
     //{
-    //    hilet &rhs_v = rhs.get();
+    //    auto const &rhs_v = rhs.get();
     //
-    //    hilet r = sRGB_linear16_to_gamma8(rhs_v[0]);
-    //    hilet g = sRGB_linear16_to_gamma8(rhs_v[1]);
-    //    hilet b = sRGB_linear16_to_gamma8(rhs_v[2]);
-    //    hilet a = static_cast<uint8_t>(std::clamp(rhs_v[3] * 255.0f, 0.0f, 255.0f));
+    //    auto const r = sRGB_linear16_to_gamma8(rhs_v[0]);
+    //    auto const g = sRGB_linear16_to_gamma8(rhs_v[1]);
+    //    auto const b = sRGB_linear16_to_gamma8(rhs_v[2]);
+    //    auto const a = static_cast<uint8_t>(std::clamp(rhs_v[3] * 255.0f, 0.0f, 255.0f));
     //    v = (static_cast<uint32_t>(a) << 24) | (static_cast<uint32_t>(b) << 16) | (static_cast<uint32_t>(g) << 8) |
     //        static_cast<uint32_t>(r);
     //    return *this;
@@ -78,7 +84,7 @@ public:
 //    hi_assert(dst.height >= src.height);
 //
 //    for (auto rowNr = 0; rowNr < src.height; rowNr++) {
-//        hilet srcRow = src.at(rowNr);
+//        auto const srcRow = src.at(rowNr);
 //        auto dstRow = dst.at(rowNr);
 //        for (auto columnNr = 0; columnNr < src.width; columnNr++) {
 //            dstRow[columnNr] = srcRow[columnNr];

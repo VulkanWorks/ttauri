@@ -7,27 +7,18 @@
 
 #pragma once
 
+#include "ucd_sentence_break_properties.hpp"
+#include "unicode_break_opportunity.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <tuple>
+#include <vector>
+#include <iterator>
+#include <algorithm>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.unicode.unicode_sentence_break);
 
-enum class unicode_sentence_break_property : uint8_t {
-    Other,
-    CR,
-    LF,
-    Extend,
-    Sep,
-    Format,
-    Sp,
-    Lower,
-    Upper,
-    OLetter,
-    Numeric,
-    ATerm,
-    SContinue,
-    STerm,
-    Close
-};
+hi_export namespace hi::inline v1 {
 
 namespace detail {
 
@@ -40,7 +31,7 @@ public:
     constexpr unicode_sentence_break_info &operator=(unicode_sentence_break_info const &) noexcept = default;
     constexpr unicode_sentence_break_info &operator=(unicode_sentence_break_info &&) noexcept = default;
 
-    constexpr unicode_sentence_break_info(unicode_sentence_break_property const &sentence_break_property) noexcept : _value(to_underlying(sentence_break_property))
+    constexpr unicode_sentence_break_info(unicode_sentence_break_property const &sentence_break_property) noexcept : _value(std::to_underlying(sentence_break_property))
     {}
 
     constexpr unicode_sentence_break_info &make_skip() noexcept
@@ -56,7 +47,7 @@ public:
 
     [[nodiscard]] constexpr friend bool operator==(unicode_sentence_break_info const &lhs, unicode_sentence_break_property const &rhs) noexcept
     {
-        return (lhs._value & 0x3f) == to_underlying(rhs);
+        return (lhs._value & 0x3f) == std::to_underlying(rhs);
     }
 
     [[nodiscard]] constexpr friend bool operator==(unicode_sentence_break_info const &, unicode_sentence_break_info const &) noexcept = default;
@@ -75,7 +66,7 @@ private:
     uint8_t _value;
 };
 
-[[nodiscard]] inline void unicode_sentence_break_SB1_SB4(
+inline void unicode_sentence_break_SB1_SB4(
     unicode_break_vector &r,
     std::vector<unicode_sentence_break_info> &infos) noexcept
 {
@@ -88,8 +79,8 @@ private:
     r.back() = yes; // SB2
 
     for (auto i = 1_uz; i < infos.size(); ++i) {
-        hilet prev = infos[i - 1];
-        hilet next = infos[i];
+        auto const prev = infos[i - 1];
+        auto const next = infos[i];
 
         r[i] = [&] () {
             if (prev == CR and next == LF) {
@@ -103,7 +94,7 @@ private:
     }
 }
 
-[[nodiscard]] inline void unicode_sentence_break_SB5(
+inline void unicode_sentence_break_SB5(
     unicode_break_vector &r,
     std::vector<unicode_sentence_break_info> &infos) noexcept
 {
@@ -113,7 +104,7 @@ private:
     hi_axiom(r.size() == infos.size() + 1);
 
     for (auto i = 1_uz; i < infos.size(); ++i) {
-        hilet prev = infos[i - 1];
+        auto const prev = infos[i - 1];
         auto &next = infos[i];
 
         if ((not is_ParaSep(prev) and prev != CR and prev != LF) and (next == Extend or next == Format)) {
@@ -125,7 +116,7 @@ private:
     }
 }
 
-[[nodiscard]] inline void unicode_sentence_break_SB6_SB998(
+inline void unicode_sentence_break_SB6_SB998(
     unicode_break_vector &r,
     std::vector<unicode_sentence_break_info> &infos) noexcept
 {
@@ -135,7 +126,7 @@ private:
     hi_axiom(r.size() == infos.size() + 1);
 
     for (auto i = 0_z; i < std::ssize(infos); ++i) {
-        hilet &next = infos[i];
+        auto const &next = infos[i];
         if (r[i] != unassigned) {
             continue;
         }
@@ -144,7 +135,7 @@ private:
 
         std::ptrdiff_t k;
 
-        hilet prev = [&] {
+        auto const prev = [&] {
             for (k = i - 1; k >= 0; --k) {
                 if (not infos[k].is_skip()) {
                     return infos[k];
@@ -153,7 +144,7 @@ private:
             return unicode_sentence_break_info{};
         }();
 
-        hilet prev_prev = [&] {
+        auto const prev_prev = [&] {
             for (--k; k >= 0; --k) {
                 if (not infos[k].is_skip()) {
                     return infos[k];
@@ -167,7 +158,7 @@ private:
         // 1 - ends in ParSep
         // 2 - includes SP
         // 4 - includes Close
-        hilet [prefix, close_sp_par_found] = [&]() {
+        auto const [prefix, close_sp_par_found] = [&]() {
             using enum unicode_break_opportunity;
 
             auto found = 0;
@@ -214,11 +205,11 @@ private:
             }
             return std::make_pair(unicode_sentence_break_info{}, 0);
         }();
-        hilet optional_close = (close_sp_par_found & 3) == 0;
-        hilet optional_close_sp = (close_sp_par_found & 1) == 0;
-        hilet optional_close_sp_par = true;
+        auto const optional_close = (close_sp_par_found & 3) == 0;
+        auto const optional_close_sp = (close_sp_par_found & 1) == 0;
+        auto const optional_close_sp_par = true;
 
-        hilet end_in_lower = [&]{
+        auto const end_in_lower = [&]{
             for (auto j = i; j < std::ssize(infos); ++j) {
                 if (not infos[j].is_skip()) {
                     if (infos[j] == Lower) {
@@ -259,20 +250,21 @@ private:
 *
 * @param first An iterator to the first character.
 * @param last An iterator to the last character.
-* @param description_func A function to get a reference to unicode_description from a character.
+* @param code_point_func A function to get a code-point from an dereferenced iterator.
 * @return A list of unicode_break_opportunity before each character.
  */
-template<typename It, typename ItEnd, typename DescriptionFunc>
-[[nodiscard]] inline unicode_break_vector unicode_sentence_break(It first, ItEnd last, DescriptionFunc const &description_func) noexcept
+template<typename It, typename ItEnd, typename CodePointFunc>
+[[nodiscard]] inline unicode_break_vector
+unicode_sentence_break(It first, ItEnd last, CodePointFunc const& code_point_func) noexcept
 {
     auto size = narrow_cast<size_t>(std::distance(first, last));
     auto r = unicode_break_vector{size + 1, unicode_break_opportunity::unassigned};
 
     auto infos = std::vector<detail::unicode_sentence_break_info>{};
     infos.reserve(size);
-    std::transform(first, last, std::back_inserter(infos), [&] (hilet &item) {
-        hilet &description = description_func(item);
-        return detail::unicode_sentence_break_info{description.sentence_break_property()};
+    std::transform(first, last, std::back_inserter(infos), [&] (auto const &item) {
+        auto const code_point = code_point_func(item);
+        return detail::unicode_sentence_break_info{ucd_get_sentence_break_property(code_point)};
         });
 
     detail::unicode_sentence_break_SB1_SB4(r, infos);

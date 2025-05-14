@@ -8,14 +8,20 @@
 
 #pragma once
 
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <string>
 #include <string_view>
+#include <bit>
+#include <compare>
+#include <array>
 #if defined(HI_HAS_SSE2)
 #include <emmintrin.h>
 #endif
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.char_maps.char_converter);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** Character encoder/decoder template.
  * @ingroup char_maps
@@ -112,7 +118,7 @@ public:
         using std::begin;
         using std::end;
 
-        hilet[size, valid] = _size(cbegin(src), cend(src));
+        auto const[size, valid] = _size(cbegin(src), cend(src));
 
         auto r = OutRange{};
         if constexpr (From == To and std::is_same_v<InRange, OutRange>) {
@@ -151,7 +157,7 @@ public:
     {
         using std::begin;
 
-        hilet[size, valid] = _size(first, last);
+        auto const[size, valid] = _size(first, last);
         auto r = OutRange{};
         if (size == 0) {
             return r;
@@ -181,7 +187,7 @@ public:
     {
         hi_assert_not_null(ptr);
 
-        hilet num_chars = size / sizeof(from_char_type);
+        auto const num_chars = size / sizeof(from_char_type);
 
         endian = from_encoder_type{}.guess_endian(ptr, size, endian);
         if (endian == std::endian::native) {
@@ -199,7 +205,7 @@ public:
             tmp.resize(num_chars);
             std::memcpy(std::addressof(*tmp.begin()), ptr, num_chars * sizeof(from_char_type));
             for (auto& c : tmp) {
-                c = byte_swap(c);
+                c = std::byteswap(c);
             }
             return convert<OutRange>(std::move(tmp));
         }
@@ -227,14 +233,14 @@ private:
     constexpr static bool _has_write_ascii_chunk16 = true;
 
     template<typename It, typename EndIt>
-    [[nodiscard]] constexpr void _size_ascii(It& it, EndIt last, size_t& count) const noexcept
+    constexpr void _size_ascii(It& it, EndIt last, size_t& count) const noexcept
     {
         if (not std::is_constant_evaluated()) {
 #if defined(HI_HAS_SSE2)
             if constexpr (_has_read_ascii_chunk16 and _has_write_ascii_chunk16) {
                 while (std::distance(it, last) >= 16) {
-                    hilet chunk = from_encoder_type{}.read_ascii_chunk16(it);
-                    hilet ascii_mask = _mm_movemask_epi8(chunk);
+                    auto const chunk = from_encoder_type{}.read_ascii_chunk16(it);
+                    auto const ascii_mask = _mm_movemask_epi8(chunk);
                     if (ascii_mask) {
                         // This chunk contains non-ASCII characters.
                         auto partial_count = std::countr_zero(truncate<uint16_t>(ascii_mask));
@@ -257,8 +263,8 @@ private:
 #if defined(HI_HAS_SSE2)
             if constexpr (_has_read_ascii_chunk16 and _has_write_ascii_chunk16) {
                 while (std::distance(src, src_last) >= 16) {
-                    hilet chunk = from_encoder_type{}.read_ascii_chunk16(src);
-                    hilet ascii_mask = _mm_movemask_epi8(chunk);
+                    auto const chunk = from_encoder_type{}.read_ascii_chunk16(src);
+                    auto const ascii_mask = _mm_movemask_epi8(chunk);
                     if (ascii_mask) {
                         // This chunk contains non-ASCII characters.
                         break;
@@ -287,10 +293,10 @@ private:
                 break;
             }
 
-            hilet[code_point, read_valid] = from_encoder_type{}.read(it, last);
+            auto const[code_point, read_valid] = from_encoder_type{}.read(it, last);
             valid &= read_valid;
 
-            hilet[write_count, write_valid] = to_encoder_type{}.size(code_point);
+            auto const[write_count, write_valid] = to_encoder_type{}.size(code_point);
             count += write_count;
             valid &= write_valid;
         }
@@ -310,7 +316,7 @@ private:
                 break;
             }
 
-            hilet[code_point, from_valid] = from_encoder_type{}.read(src, src_last);
+            auto const[code_point, from_valid] = from_encoder_type{}.read(src, src_last);
             to_encoder_type{}.write(code_point, dst);
         }
     }

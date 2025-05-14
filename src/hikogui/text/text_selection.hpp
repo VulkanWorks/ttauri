@@ -5,12 +5,16 @@
 #pragma once
 
 #include "text_cursor.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <tuple>
 #include <cstdlib>
 #include <algorithm>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.text.text_selection);
+
+
+hi_export namespace hi::inline v1 {
 
 class text_selection {
 public:
@@ -65,7 +69,7 @@ public:
 
     [[nodiscard]] constexpr bool empty() const noexcept
     {
-        hilet[first_index, last_index] = selection_indices();
+        auto const[first_index, last_index] = selection_indices();
         return first_index >= last_index;
     }
 

@@ -25,12 +25,16 @@
 
 #pragma once
 
-#include "../strings.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../algorithm/algorithm.hpp"
+#include "../macros.hpp"
 #include <tuple>
 #include <string_view>
+#include <format>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.layout.spreadsheet_address);
+
+hi_export namespace hi::inline v1 {
 
 inline std::tuple<bool, std::size_t, bool, std::size_t> _parse_spreadsheet_address(std::string_view& address)
 {

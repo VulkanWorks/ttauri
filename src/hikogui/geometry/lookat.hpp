@@ -8,11 +8,15 @@
 
 #pragma once
 
-#include "matrix.hpp"
-#include "point.hpp"
+#include "matrix3.hpp"
+#include "point3.hpp"
+#include "../macros.hpp"
+#include <exception>
+#include <compare>
 
-namespace hi { inline namespace v1 {
-namespace geo {
+hi_export_module(hikogui.geometry : lookat);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** Perspective transform.
  * @ingroup geometry
@@ -30,13 +34,13 @@ public:
     {
     }
 
-    [[nodiscard]] constexpr operator matrix<3>() noexcept
+    [[nodiscard]] constexpr operator matrix3() noexcept
     {
-        hilet f = normalize(_lookat_location - _camera_location);
-        hilet s = normalize(cross(f, _up));
-        hilet u = cross(s, f);
+        auto const f = normalize(_lookat_location - _camera_location);
+        auto const s = normalize(cross(f, _up));
+        auto const u = cross(s, f);
 
-        hilet eye = vector3{static_cast<f32x4>(_camera_location).xyz0()};
+        auto const eye = vector3{static_cast<f32x4>(_camera_location).xyz0()};
 
         // clang-format off
         // Matrix constructor is in row-major for nice display.
@@ -54,9 +58,5 @@ private:
     point3 _lookat_location;
     vector3 _up;
 };
-
-} // namespace geo
-
-using lookat3 = geo::lookat;
 
 }} // namespace hi::v1

@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "hikogui_htests.exe",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/out/build/msvc-x64-windows/Debug/hikogui_htests-deb.exe",
+            "cwd": "${workspaceRoot}/out/build/msvc-x64-windows/Debug/",
+            "args": ["--gtest_list_tests"]
+        }
+    ]
+}
+  

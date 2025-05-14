@@ -4,11 +4,20 @@
 
 #pragma once
 
-#include "../utility/module.hpp"
-#include "../strings.hpp"
+#include "../utility/utility.hpp"
+#include "../algorithm/algorithm.hpp"
+#include "../macros.hpp"
 #include <cstdint>
+#include <utility>
+#include <format>
+#include <string_view>
+#include <string>
+#include <ostream>
+#include <functional>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.GUI : keyboard_modifiers);
+
+hi_export namespace hi::inline v1 {
 
 /** Key modification keys pressed at the same time as another key.
  *
@@ -25,12 +34,12 @@ enum class keyboard_modifiers : uint8_t {
 
 [[nodiscard]] constexpr keyboard_modifiers operator|(keyboard_modifiers const& lhs, keyboard_modifiers const& rhs) noexcept
 {
-    return static_cast<keyboard_modifiers>(to_underlying(lhs) | to_underlying(rhs));
+    return static_cast<keyboard_modifiers>(std::to_underlying(lhs) | std::to_underlying(rhs));
 }
 
 [[nodiscard]] constexpr keyboard_modifiers operator&(keyboard_modifiers const& lhs, keyboard_modifiers const& rhs) noexcept
 {
-    return static_cast<keyboard_modifiers>(to_underlying(lhs) & to_underlying(rhs));
+    return static_cast<keyboard_modifiers>(std::to_underlying(lhs) & std::to_underlying(rhs));
 }
 
 constexpr keyboard_modifiers& operator|=(keyboard_modifiers& lhs, keyboard_modifiers const& rhs) noexcept
@@ -40,7 +49,7 @@ constexpr keyboard_modifiers& operator|=(keyboard_modifiers& lhs, keyboard_modif
 
 [[nodiscard]] constexpr bool to_bool(keyboard_modifiers const& rhs) noexcept
 {
-    return to_bool(to_underlying(rhs));
+    return to_bool(std::to_underlying(rhs));
 }
 
 bool operator>=(keyboard_modifiers const& lhs, keyboard_modifiers const& rhs) = delete;
@@ -55,7 +64,7 @@ inline keyboard_modifiers to_keyboard_modifiers(std::string_view s)
     }
 
     // Remove the canonical trailing '+'.
-    hilet s_lower = to_lower((s.back() == '+') ? s.substr(0, ssize(s) - 1) : s);
+    auto const s_lower = to_lower((s.back() == '+') ? s.substr(0, ssize(s) - 1) : s);
 
     if (s_lower == "shift") {
         return keyboard_modifiers::shift;
@@ -105,10 +114,11 @@ struct std::hash<hi::keyboard_modifiers> {
     }
 };
 
-template<typename CharT>
-struct std::formatter<hi::keyboard_modifiers, CharT> : std::formatter<std::string_view, CharT> {
-    auto format(hi::keyboard_modifiers const& t, auto& fc)
+// XXX #617 MSVC bug does not handle partial specialization in modules.
+hi_export template<>
+struct std::formatter<hi::keyboard_modifiers, char> : std::formatter<std::string_view, char> {
+    auto format(hi::keyboard_modifiers const& t, auto& fc) const
     {
-        return std::formatter<std::string_view, CharT>::format(hi::to_string(t), fc);
+        return std::formatter<std::string_view, char>::format(hi::to_string(t), fc);
     }
 };

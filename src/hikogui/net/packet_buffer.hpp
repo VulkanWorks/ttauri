@@ -4,7 +4,11 @@
 
 #pragma once
 
-namespace hi::inline v1 {
+#include "../macros.hpp"
+
+hi_export_module(hikogui.net.packet_buffer);
+
+hi_export namespace hi::inline v1 {
 
 class packet_buffer {
     std::list<packet> packets;
@@ -128,10 +132,10 @@ public:
                 i = 0;
             }
 
-            hilet c = packets[packetNr][i] if (c == '\n' || c == '\0')
+            auto const c = packets[packetNr][i] if (c == '\n' || c == '\0')
             {
                 // Found end-of-line
-                hilet bspan = peek(byteNr + 1);
+                auto const bspan = peek(byteNr + 1);
                 return {reinterpret_cast<char *>(bspan.data()), byteNr + 1};
             }
             ++i;
@@ -153,7 +157,7 @@ public:
         peekBuffer.clear();
 
         while (nrBytes) {
-            hilet packet_size = ssize(packets.front());
+            auto const packet_size = ssize(packets.front());
             if (nrBytes >= packet_size) {
                 packets.pop_front();
             } else {

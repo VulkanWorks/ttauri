@@ -3,11 +3,14 @@
 // (See accompanying file LICENSE_1_0.txt or copy at https://www.boost.org/LICENSE_1_0.txt)
 
 #include "audio_sample_unpacker.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <gtest/gtest.h>
 #include <iostream>
 #include <string>
 #include <array>
+
+
 
 using namespace hi;
 
@@ -62,16 +65,16 @@ constexpr float float32_max_diff = 0.0f;
 
     // `u` was assembled as little-endian, so swap if that is not the native byte order.
     if (std::endian::little != std::endian::native) {
-        u = byte_swap(u);
+        u = std::byteswap(u);
     }
     return std::bit_cast<float>(u);
 }
 
 TEST(audio_sample_unpacker, unpack_int16le_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 2};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 2};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int16_to_float(packed[1], packed[0]), int16_max_diff);
@@ -108,9 +111,9 @@ TEST(audio_sample_unpacker, unpack_int16le_mono)
 
 TEST(audio_sample_unpacker, unpack_int16be_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int16_be(), 2};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int16_be(), 2};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int16_to_float(packed[0], packed[1]), int16_max_diff);
@@ -147,9 +150,9 @@ TEST(audio_sample_unpacker, unpack_int16be_mono)
 
 TEST(audio_sample_unpacker, unpack_int16le_stereo)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 4};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 4};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int16_to_float(packed[1], packed[0]), int16_max_diff);
@@ -186,9 +189,9 @@ TEST(audio_sample_unpacker, unpack_int16le_stereo)
 
 TEST(audio_sample_unpacker, unpack_int16le_trio)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 6};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 6};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int16_to_float(packed[1], packed[0]), int16_max_diff);
@@ -225,9 +228,9 @@ TEST(audio_sample_unpacker, unpack_int16le_trio)
 
 TEST(audio_sample_unpacker, unpack_int16le_quadro)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 8};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int16_le(), 8};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int16_to_float(packed[1], packed[0]), int16_max_diff);
@@ -264,9 +267,9 @@ TEST(audio_sample_unpacker, unpack_int16le_quadro)
 
 TEST(audio_sample_unpacker, unpack_int24le_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int24_le(), 3};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int24_le(), 3};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int24_to_float(packed[2], packed[1], packed[0]), int24_max_diff);
@@ -303,9 +306,9 @@ TEST(audio_sample_unpacker, unpack_int24le_mono)
 
 TEST(audio_sample_unpacker, unpack_int24be_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int24_be(), 3};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int24_be(), 3};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int24_to_float(packed[0], packed[1], packed[2]), int24_max_diff);
@@ -342,9 +345,9 @@ TEST(audio_sample_unpacker, unpack_int24be_mono)
 
 TEST(audio_sample_unpacker, unpack_int24le_stereo)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int24_le(), 6};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int24_le(), 6};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int24_to_float(packed[2], packed[1], packed[0]), int24_max_diff);
@@ -381,9 +384,9 @@ TEST(audio_sample_unpacker, unpack_int24le_stereo)
 
 TEST(audio_sample_unpacker, unpack_int20le_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int20_le(), 3};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int20_le(), 3};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int20_to_float(packed[2], packed[1], packed[0]), int20_max_diff);
@@ -420,9 +423,9 @@ TEST(audio_sample_unpacker, unpack_int20le_mono)
 
 TEST(audio_sample_unpacker, unpack_int20be_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::int20_be(), 3};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::int20_be(), 3};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], int20_to_float(packed[0], packed[1], packed[2]), int20_max_diff);
@@ -459,9 +462,9 @@ TEST(audio_sample_unpacker, unpack_int20be_mono)
 
 TEST(audio_sample_unpacker, unpack_fix8_24le_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::fix8_23_le(), 4};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::fix8_23_le(), 4};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], fix8_24_to_float(packed[3], packed[2], packed[1], packed[0]), fix8_24_max_diff);
@@ -498,9 +501,9 @@ TEST(audio_sample_unpacker, unpack_fix8_24le_mono)
 
 TEST(audio_sample_unpacker, unpack_fix8_24be_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::fix8_23_be(), 4};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::fix8_23_be(), 4};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], fix8_24_to_float(packed[0], packed[1], packed[2], packed[3]), fix8_24_max_diff);
@@ -537,9 +540,9 @@ TEST(audio_sample_unpacker, unpack_fix8_24be_mono)
 
 TEST(audio_sample_unpacker, unpack_float32le_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::float32_le(), 4};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::float32_le(), 4};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], float32_to_float(packed[3], packed[2], packed[1], packed[0]), float32_max_diff);
@@ -576,9 +579,9 @@ TEST(audio_sample_unpacker, unpack_float32le_mono)
 
 TEST(audio_sample_unpacker, unpack_float32be_mono)
 {
-    hilet packed = make_packed();
+    auto const packed = make_packed();
     auto flat_samples = std::array<float, 256>{};
-    hilet unpacker = audio_sample_unpacker{audio_sample_format::float32_be(), 4};
+    auto const unpacker = audio_sample_unpacker{audio_sample_format::float32_be(), 4};
 
     unpacker(packed.data(), flat_samples.data(), 1);
     ASSERT_NEAR(flat_samples[0], float32_to_float(packed[0], packed[1], packed[2], packed[3]), float32_max_diff);

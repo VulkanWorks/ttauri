@@ -4,9 +4,13 @@
 
 #pragma once
 
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <random>
 
-namespace hi {
+hi_export_module(hikogui.char_maps.random_char);
+
+hi_export namespace hi {
 inline namespace v1 {
 
 inline char32_t random_char() noexcept

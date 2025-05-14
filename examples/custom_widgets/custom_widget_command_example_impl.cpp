@@ -2,12 +2,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at https://www.boost.org/LICENSE_1_0.txt)
 
-#include "hikogui/module.hpp"
-#include "hikogui/GUI/gui_system.hpp"
-#include "hikogui/widgets/widget.hpp"
+#include "hikogui/hikogui.hpp"
 #include "hikogui/crt.hpp"
-#include "hikogui/log.hpp"
-#include "hikogui/loop.hpp"
 
 // Every widget must inherit from hi::widget.
 class command_widget : public hi::widget {
@@ -16,8 +12,8 @@ public:
     hi::observer<bool> value;
 
     // Every constructor of a widget starts with a `window` and `parent` argument.
-    // In most cases these are automatically filled in when calling a container widget's `make_widget()` function.
-    command_widget(hi::widget *parent) noexcept : hi::widget(parent)
+    // In most cases these are automatically filled in when calling a container widget's `emplace()` function.
+    command_widget() noexcept : hi::widget()
     {
         // To visually show the change in value the widget needs to be redrawn.
         _value_cbt = value.subscribe([&](auto...) {
@@ -47,10 +43,10 @@ public:
     }
 
     // It is common to override the context sensitive colors of the default widget.
-    // In this case the background color is 'teal' when the value of the widget is true.
+    // In this case the background color is 'green' when the value of the widget is true.
     [[nodiscard]] hi::color background_color() const noexcept override
     {
-        return *value ? theme().color(hi::semantic_color::green) : widget::background_color();
+        return *value ? hi::color::green() : theme().fill_color();
     }
 
     // The `draw()` function is called when all or part of the window requires redrawing.
@@ -60,7 +56,7 @@ public:
     {
         // We only need to draw the widget when it is visible and when the visible area of
         // the widget overlaps with the scissor-rectangle (partial redraw) of the drawing context.
-        if (*mode > hi::widget_mode::invisible and overlaps(context, layout())) {
+        if (mode() > hi::widget_mode::invisible and overlaps(context, layout())) {
             // When drawing this box we use the widget's background_color() and focus_color().
             // These colors are context sensitive; for example focus_color() checks if the widget is enabled,
             // has keyboard focus and the window is active.
@@ -79,20 +75,20 @@ public:
     [[nodiscard]] bool accepts_keyboard_focus(hi::keyboard_focus_group group) const noexcept override
     {
         // This widget will react to "normal" tab/shift-tab keys and mouse clicks to focus the widget.
-        return *mode >= hi::widget_mode::partial and to_bool(group & hi::keyboard_focus_group::normal);
+        return mode() >= hi::widget_mode::partial and to_bool(group & hi::keyboard_focus_group::normal);
     }
 
     // Override this function when your widget needs to be controllable by mouse interaction.
-    [[nodiscard]] hi::hitbox hitbox_test(hi::point2i position) const noexcept override
+    [[nodiscard]] hi::hitbox hitbox_test(hi::point2 position) const noexcept override
     {
         // Check if the (mouse) position is within the visual-area of the widget.
         // The hit_rectangle is the _layout.rectangle() intersected with the _layout.clipping_rectangle.
-        if (*mode >= hi::widget_mode::partial and layout().contains(position)) {
+        if (mode() >= hi::widget_mode::partial and layout().contains(position)) {
             // The `this` argument allows the gui_window to forward mouse events to handle_event(mouse) of this widget.
             // The `position` argument is used to handle widgets that are visually overlapping, widgets with higher elevation
             // get priority. When this widget is enabled it should show a button-cursor, otherwise just the normal arrow.
             return {
-                id, _layout.elevation, *mode >= hi::widget_mode::partial ? hi::hitbox_type::button : hi::hitbox_type::_default};
+                id, _layout.elevation, mode() >= hi::widget_mode::partial ? hi::hitbox_type::button : hi::hitbox_type::_default};
 
         } else {
             return {};
@@ -104,7 +100,7 @@ public:
     {
         switch (event.type()) {
         case hi::gui_event_type::gui_activate:
-            if (*mode >= hi::widget_mode::partial) {
+            if (mode() >= hi::widget_mode::partial) {
                 // Handle activate, by default the "spacebar" causes this command.
                 value = not *value;
                 return true;
@@ -112,11 +108,11 @@ public:
             break;
 
         case hi::gui_event_type::keyboard_grapheme:
-            hi_log_error("User typed the letter U+{:x}.", static_cast<uint32_t>(get<0>(event.grapheme())));
+            hi_log_error("User typed the letter U+{:x}.", static_cast<uint32_t>(event.grapheme().starter()));
             return true;
 
         case hi::gui_event_type::mouse_up:
-            if (*mode >= hi::widget_mode::partial and event.is_left_button_up(_layout.rectangle())) {
+            if (mode() >= hi::widget_mode::partial and event.is_left_button_up(_layout.rectangle())) {
                 return handle_event(hi::gui_event_type::gui_activate);
             }
             break;
@@ -129,15 +125,20 @@ public:
     }
 
 private:
-    decltype(value)::callback_token _value_cbt;
+    hi::callback<void(bool)> _value_cbt;
 };
 
 int hi_main(int argc, char *argv[])
 {
-    auto gui = hi::gui_system::make_unique();
-    auto window = gui->make_window(hi::tr("Custom Widget Command"));
-    window->content().make_widget<command_widget>("A1");
-    window->content().make_widget<command_widget>("A2");
+    hi::set_application_name("Custom widget command example");
+    hi::set_application_vendor("HikoGUI");
+    hi::set_application_version({1, 0, 0});
+
+    auto widget = std::make_unique<hi::window_widget>(hi::txt("Custom Widget Command"));
+    widget->content().emplace<command_widget>("A1");
+    widget->content().emplace<command_widget>("A2");
+
+    auto window = std::make_unique<hi::gui_window>(std::move(widget));
 
     auto close_cbt = window->closing.subscribe(
         [&] {

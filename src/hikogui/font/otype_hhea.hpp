@@ -5,11 +5,14 @@
 #pragma once
 
 #include "otype_utilities.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <span>
 #include <cstddef>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.font.otype_hhea);
+
+hi_export namespace hi { inline namespace v1 {
 
 [[nodiscard]] inline auto otype_hhea_parse(std::span<std::byte const> bytes, float em_scale)
 {
@@ -41,7 +44,7 @@ namespace hi { inline namespace v1 {
         uint16_t number_of_h_metrics;
     };
 
-    hilet& header = implicit_cast<header_type>(bytes);
+    auto const& header = implicit_cast<header_type>(bytes);
     hi_check(*header.major_version == 1 && *header.minor_version == 0, "'hhea' version is not 1.0");
 
     auto r = return_type{};

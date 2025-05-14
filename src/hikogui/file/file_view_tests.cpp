@@ -3,17 +3,16 @@
 // (See accompanying file LICENSE_1_0.txt or copy at https://www.boost.org/LICENSE_1_0.txt)
 
 #include "file_view.hpp"
-#include "../utility/module.hpp"
-#include <gtest/gtest.h>
-#include <iostream>
-#include <string>
+#include "../path/path.hpp"
+#include <hikotest/hikotest.hpp>
 
-using namespace std;
-using namespace hi;
+TEST_SUITE(file_view) {
 
-TEST(file_view, read)
+TEST_CASE(read)
 {
-    hilet view = file_view{"file_view.txt"};
+    auto const view = hi::file_view{hi::library_test_data_dir() / "file_view.txt"};
 
-    ASSERT_EQ(as_string_view(view), "The quick brown fox jumps over the lazy dog.");
+    REQUIRE(as_string_view(view) == "The quick brown fox jumps over the lazy dog.");
 }
+
+};

@@ -9,17 +9,21 @@
 #pragma once
 
 #include "widget.hpp"
-#include "../GUI/gui_event.hpp"
-#include "../geometry/module.hpp"
-#include "../observer.hpp"
-#include "../utility/module.hpp"
+#include "../GUI/GUI.hpp"
+#include "../geometry/geometry.hpp"
+#include "../observer/observer.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <memory>
 #include <string>
 #include <array>
 #include <optional>
 #include <future>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.widgets.scroll_bar_widget);
+
+hi_export namespace hi {
+inline namespace v1 {
 
 /** Scroll bar widget
  * This widget is used in a pair of a vertical and horizontal scrollbar as
@@ -31,22 +35,25 @@ namespace hi { inline namespace v1 {
  * @tparam Axis which axis (horizontal or vertical) this scroll bar is used for.
  */
 template<axis Axis>
-class scroll_bar_widget final : public widget {
+class scroll_bar_widget : public widget {
 public:
     using super = widget;
 
-    static constexpr hi::axis axis = Axis;
+    constexpr static hi::axis axis = Axis;
 
-    observer<int> offset;
-    observer<int> aperture;
-    observer<int> content;
+    observer<float> offset;
+    observer<float> aperture;
+    observer<float> content;
 
+    template<forward_of<observer<float>> Content, forward_of<observer<float>> Aperture, forward_of<observer<float>> Offset>
     scroll_bar_widget(
-        widget *parent,
-        forward_of<observer<int>> auto&& content,
-        forward_of<observer<int>> auto&& aperture,
-        forward_of<observer<int>> auto&& offset) noexcept :
-        widget(parent), content(hi_forward(content)), aperture(hi_forward(aperture)), offset(hi_forward(offset))
+        Content&& content,
+        Aperture&& aperture,
+        Offset&& offset) noexcept :
+        widget(),
+        content(std::forward<Content>(content)),
+        aperture(std::forward<Aperture>(aperture)),
+        offset(std::forward<Offset>(offset))
     {
         _content_cbt = this->content.subscribe([&](auto...) {
             ++global_counter<"scroll_bar_widget:content:relayout">;
@@ -68,21 +75,21 @@ public:
     {
         _layout = {};
 
-        if (*mode <= widget_mode::collapse) {
+        if (mode() <= widget_mode::collapse) {
             return {};
         }
 
         // The minimum size is twice the length of the slider, which is twice the theme().size()
         if constexpr (axis == axis::vertical) {
             return {
-                extent2i{theme().icon_size(), theme().size() * 4},
-                extent2i{theme().icon_size(), theme().size() * 4},
-                extent2i{theme().icon_size(), large_number_v<int>}};
+                extent2{theme().icon_size(), theme().size() * 4},
+                extent2{theme().icon_size(), theme().size() * 4},
+                extent2{theme().icon_size(), large_number_v<int>}};
         } else {
             return {
-                extent2i{theme().size() * 4, theme().icon_size()},
-                extent2i{theme().size() * 4, theme().icon_size()},
-                extent2i{large_number_v<int>, theme().icon_size()}};
+                extent2{theme().size() * 4, theme().icon_size()},
+                extent2{theme().size() * 4, theme().icon_size()},
+                extent2{large_number_v<int>, theme().icon_size()}};
         }
     }
 
@@ -90,17 +97,17 @@ public:
     {
         _layout = context;
 
-        if (*mode <= widget_mode::collapse) {
+        if (mode() <= widget_mode::collapse) {
             _slider_rectangle = {};
             return;
         }
 
         // Calculate the position of the slider.
-        hilet slider_offset = narrow_cast<int>(std::round(*offset * travel_vs_hidden_content_ratio()));
+        auto const slider_offset = std::round(*offset * travel_vs_hidden_content_ratio());
         if constexpr (axis == axis::vertical) {
-            _slider_rectangle = aarectanglei{0, slider_offset, context.width(), slider_length()};
+            _slider_rectangle = aarectangle{0.0f, slider_offset, context.width(), slider_length()};
         } else {
-            _slider_rectangle = aarectanglei{slider_offset, 0, slider_length(), context.height()};
+            _slider_rectangle = aarectangle{slider_offset, 0.0f, slider_length(), context.height()};
         }
     }
 
@@ -111,17 +118,17 @@ public:
 
     void draw(draw_context const& context) noexcept override
     {
-        if (*mode > widget_mode::invisible and overlaps(context, layout()) and visible()) {
+        if (mode() > widget_mode::invisible and overlaps(context, layout()) and visible()) {
             draw_rails(context);
             draw_slider(context);
         }
     }
 
-    hitbox hitbox_test(point2i position) const noexcept override
+    hitbox hitbox_test(point2 position) const noexcept override
     {
         hi_axiom(loop::main().on_thread());
 
-        if (*mode >= widget_mode::partial and layout().contains(position) and visible() and
+        if (mode() >= widget_mode::partial and layout().contains(position) and visible() and
             _slider_rectangle.contains(position)) {
             return {id, _layout.elevation, hitbox_type::scroll_bar};
         } else {
@@ -144,10 +151,9 @@ public:
             if (event.mouse().cause.left_button) {
                 // The distance the slider has to move relative to the slider position at the
                 // start of the drag.
-                hilet slider_movement =
-                    narrow_cast<int>(axis == axis::vertical ? event.drag_delta().y() : event.drag_delta().x());
-                hilet content_movement = narrow_cast<int>(std::round(slider_movement * hidden_content_vs_travel_ratio()));
-                hilet new_offset = _offset_before_drag + content_movement;
+                auto const slider_movement = axis == axis::vertical ? event.drag_delta().y() : event.drag_delta().x();
+                auto const content_movement = round_cast<int>(slider_movement * hidden_content_vs_travel_ratio());
+                auto const new_offset = _offset_before_drag + content_movement;
                 offset = clamp_offset(new_offset);
                 return true;
             }
@@ -166,61 +172,61 @@ public:
 
     [[nodiscard]] color background_color() const noexcept override
     {
-        return theme().color(semantic_color::fill, semantic_layer);
+        return theme().fill_color(_layout.layer);
     }
 
     [[nodiscard]] color foreground_color() const noexcept override
     {
-        if (*hover) {
-            return theme().color(semantic_color::fill, semantic_layer + 2);
+        if (phase() == widget_phase::hover) {
+            return theme().fill_color(_layout.layer + 2);
         } else {
-            return theme().color(semantic_color::fill, semantic_layer + 1);
+            return theme().fill_color(_layout.layer + 1);
         }
     }
 
 private:
-    aarectanglei _slider_rectangle;
+    aarectangle _slider_rectangle;
 
-    int _offset_before_drag;
+    float _offset_before_drag;
 
-    typename decltype(content)::callback_token _content_cbt;
-    typename decltype(aperture)::callback_token _aperture_cbt;
-    typename decltype(offset)::callback_token _offset_cbt;
+    callback<void(float)> _content_cbt;
+    callback<void(float)> _aperture_cbt;
+    callback<void(float)> _offset_cbt;
 
     /** Create a new offset value.
      *
      * Clamp the new offset value by the amount of scrollable distance.
      */
-    [[nodiscard]] int clamp_offset(int new_offset) const noexcept
+    [[nodiscard]] float clamp_offset(float new_offset) const noexcept
     {
-        hilet scrollable_distance = std::max(0, *content - *aperture);
-        return std::clamp(new_offset, 0, scrollable_distance);
+        auto const scrollable_distance = std::max(0.0f, *content - *aperture);
+        return std::clamp(new_offset, 0.0f, scrollable_distance);
     }
 
-    [[nodiscard]] int rail_length() const noexcept
+    [[nodiscard]] float rail_length() const noexcept
     {
         hi_axiom(loop::main().on_thread());
         return axis == axis::vertical ? layout().height() : layout().width();
     }
 
-    [[nodiscard]] int slider_length() const noexcept
+    [[nodiscard]] float slider_length() const noexcept
     {
         hi_axiom(loop::main().on_thread());
 
-        hilet preferred_length = [&] {
-            if (*content == 0) {
+        auto const preferred_length = [&] {
+            if (*content == 0.0f) {
                 return rail_length();
             } else {
-                return *aperture * rail_length() / *content;
+                return std::round(*aperture * rail_length() / *content);
             }
         }();
 
-        return std::clamp(preferred_length, narrow_cast<int>(theme().size()) * 2, rail_length());
+        return std::clamp(preferred_length, theme().size() * 2.0f, rail_length());
     }
 
     /** The amount of travel that the slider can make.
      */
-    [[nodiscard]] int slider_travel_range() const noexcept
+    [[nodiscard]] float slider_travel_range() const noexcept
     {
         hi_axiom(loop::main().on_thread());
         return rail_length() - slider_length();
@@ -228,7 +234,7 @@ private:
 
     /** The amount of content hidden from view.
      */
-    [[nodiscard]] int hidden_content() const noexcept
+    [[nodiscard]] float hidden_content() const noexcept
     {
         hi_axiom(loop::main().on_thread());
         return *content - *aperture;
@@ -242,8 +248,8 @@ private:
     {
         hi_axiom(loop::main().on_thread());
 
-        hilet _slider_travel_range = slider_travel_range();
-        return _slider_travel_range != 0 ? narrow_cast<float>(hidden_content()) / _slider_travel_range : 0.0f;
+        auto const _slider_travel_range = slider_travel_range();
+        return _slider_travel_range != 0 ? std::round(hidden_content() / _slider_travel_range) : 0.0f;
     }
 
     /** Get the ratio of the slider travel range vs hidden content.
@@ -254,25 +260,25 @@ private:
     {
         hi_axiom(loop::main().on_thread());
 
-        hilet _hidden_content = hidden_content();
-        return _hidden_content != 0 ? narrow_cast<float>(slider_travel_range()) / _hidden_content : 0.0f;
+        auto const _hidden_content = hidden_content();
+        return _hidden_content != 0 ? slider_travel_range() / _hidden_content : 0.0f;
     }
 
     void draw_rails(draw_context const& context) noexcept
     {
-        hilet corner_radii =
+        auto const corner_radii =
             axis == axis::vertical ? hi::corner_radii{layout().width() * 0.5f} : hi::corner_radii{layout().height() * 0.5f};
         context.draw_box(layout(), layout().rectangle(), background_color(), corner_radii);
     }
 
     void draw_slider(draw_context const& context) noexcept
     {
-        hilet corner_radii = axis == axis::vertical ? hi::corner_radii{narrow_cast<float>(_slider_rectangle.width() / 2)} :
-                                                      hi::corner_radii{narrow_cast<float>(_slider_rectangle.height() / 2)};
+        auto const corner_radii = axis == axis::vertical ? hi::corner_radii{_slider_rectangle.width() / 2.0f} :
+                                                           hi::corner_radii{_slider_rectangle.height() / 2.0f};
 
-        context.draw_box(
-            layout(), translate_z(0.1f) * narrow_cast<aarectangle>(_slider_rectangle), foreground_color(), corner_radii);
+        context.draw_box(layout(), translate_z(0.1f) * _slider_rectangle, foreground_color(), corner_radii);
     }
 };
 
-}} // namespace hi::v1
+} // namespace v1
+} // namespace hi::v1

@@ -8,18 +8,24 @@
 
 #pragma once
 
-#include "../utility/module.hpp"
-#include "../geometry/module.hpp"
-#include "color.hpp"
+#include "../utility/utility.hpp"
+#include "../geometry/geometry.hpp"
+#include "color_intf.hpp"
+#include "../macros.hpp"
 #include <cmath>
 #include <array>
+#include <algorithm>
+#include <string_view>
+#include <format>
+
+hi_export_module(hikogui.color.sRGB);
 
 hi_warning_push();
 // C26426: Global initializer calls a non-constexpr function '...' (i.22).
 // std::pow() is not constexpr and needed to fill in the gamma conversion tables.
 hi_warning_ignore_msvc(26426);
 
-namespace hi { inline namespace v1 {
+hi_export namespace hi { inline namespace v1 {
 
 /** Matrix to convert sRGB to XYZ.
  * @ingroup color
@@ -78,8 +84,12 @@ namespace detail {
     std::array<uint8_t, 65536> r{};
 
     for (int i = 0; i != 65536; ++i) {
-        r[i] = narrow_cast<uint8_t>(
-            std::floor(std::clamp(sRGB_linear_to_gamma(float16::from_uint16_t(narrow_cast<uint16_t>(i))), 0.0f, 1.0f) * 255.0f));
+        auto f = static_cast<float>(half(std::in_place, narrow_cast<uint16_t>(i)));
+        if (f != f) {
+            f = 0.0f;
+        }
+
+        r[i] = round_cast<uint8_t>(std::floor(std::clamp(sRGB_linear_to_gamma(f), 0.0f, 1.0f) * 255.0f));
     }
 
     return r;
@@ -87,10 +97,10 @@ namespace detail {
 
 [[nodiscard]] inline auto sRGB_gamma8_to_linear16_table_generator() noexcept
 {
-    std::array<float16, 256> r{};
+    std::array<half, 256> r{};
 
     for (int i = 0; i != 256; ++i) {
-        r[i] = static_cast<float16>(sRGB_gamma_to_linear(i / 255.0f));
+        r[i] = static_cast<half>(sRGB_gamma_to_linear(i / 255.0f));
     }
 
     return r;
@@ -109,9 +119,9 @@ inline auto sRGB_gamma8_to_linear16_table = sRGB_gamma8_to_linear16_table_genera
  * @param u The linear color value, between 0.0 and 1.0.
  * @return The color value converted to the sRGB gamma corrected value between 0.0 and 1.0.
  */
-[[nodiscard]] inline uint8_t sRGB_linear16_to_gamma8(float16 u) noexcept
+[[nodiscard]] inline uint8_t sRGB_linear16_to_gamma8(half u) noexcept
 {
-    return detail::sRGB_linear16_to_gamma8_table[u.get()];
+    return detail::sRGB_linear16_to_gamma8_table[u.intrinsic()];
 }
 
 /** sRGB gamma to linear float-16 transfer function.
@@ -122,7 +132,7 @@ inline auto sRGB_gamma8_to_linear16_table = sRGB_gamma8_to_linear16_table_genera
  * @param u The sRGB gamma corrected color value, between 0.0 and 1.0.
  * @return The color value converted to a linear color value between 0.0 and 1.0.
  */
-[[nodiscard]] inline float16 sRGB_gamma8_to_linear16(uint8_t u) noexcept
+[[nodiscard]] inline half sRGB_gamma8_to_linear16(uint8_t u) noexcept
 {
     return detail::sRGB_gamma8_to_linear16_table[u];
 }
@@ -169,7 +179,7 @@ inline auto sRGB_gamma8_to_linear16_table = sRGB_gamma8_to_linear16_table_genera
         tmp += "ff";
     }
 
-    auto packed = from_string<uint32_t>(tmp);
+    auto packed = from_string<uint32_t>(tmp, 16);
 
     uint8_t const r = truncate<uint8_t>(packed >> 24);
     uint8_t const g = truncate<uint8_t>(packed >> 16);

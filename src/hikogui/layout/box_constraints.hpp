@@ -4,13 +4,16 @@
 
 #pragma once
 
-#include "../geometry/module.hpp"
-#include "../utility/module.hpp"
+#include "../geometry/geometry.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <cstdint>
 #include <limits>
 #include <concepts>
 
-namespace hi { inline namespace v1 {
+hi_export_module(hikogui.layout.box_constraints);
+
+hi_export namespace hi { inline namespace v1 {
 
 /** 2D constraints.
  * @ingroup geometry
@@ -20,11 +23,10 @@ namespace hi { inline namespace v1 {
  *
  */
 struct box_constraints {
-    extent2i minimum = {};
-    extent2i preferred = {};
-    extent2i maximum = {};
-    marginsi margins = {};
-    marginsi padding = {};
+    extent2 minimum = {};
+    extent2 preferred = {};
+    extent2 maximum = {};
+    hi::margins margins = {};
 
     hi::alignment alignment = hi::alignment{};
 
@@ -36,36 +38,17 @@ struct box_constraints {
     [[nodiscard]] constexpr friend bool operator==(box_constraints const&, box_constraints const&) noexcept = default;
 
     constexpr box_constraints(
-        extent2i minimum,
-        extent2i preferred,
-        extent2i maximum,
+        extent2 minimum,
+        extent2 preferred,
+        extent2 maximum,
         hi::alignment alignment = hi::alignment{},
-        hi::marginsi margins = hi::marginsi{},
-        hi::marginsi padding = hi::marginsi{}) noexcept :
-        minimum(minimum), preferred(preferred), maximum(maximum), margins(margins), padding(padding), alignment(alignment)
+        hi::margins margins = hi::margins{}) noexcept :
+        minimum(minimum), preferred(preferred), maximum(maximum), margins(margins), alignment(alignment)
     {
         hi_axiom(holds_invariant());
     }
 
-    [[nodiscard]] constexpr box_constraints internalize_margins() const noexcept
-    {
-        auto r = *this;
-        r.padding += r.margins;
-
-        r.minimum.width() += r.margins.left() + r.margins.right();
-        r.preferred.width() += r.margins.left() + r.margins.right();
-        r.maximum.width() += r.margins.left() + r.margins.right();
-
-        r.minimum.height() += r.margins.bottom() + r.margins.top();
-        r.preferred.height() += r.margins.bottom() + r.margins.top();
-        r.maximum.height() += r.margins.bottom() + r.margins.top();
-
-        r.margins = 0;
-        hi_axiom(r.holds_invariant());
-        return r;
-    }
-
-    [[nodiscard]] constexpr box_constraints constrain(extent2i new_minimum, extent2i new_maximum) const noexcept
+    [[nodiscard]] constexpr box_constraints constrain(extent2 new_minimum, extent2 new_maximum) const noexcept
     {
         hi_assert(new_minimum <= new_maximum);
 
@@ -80,7 +63,7 @@ struct box_constraints {
         return r;
     }
 
-    constexpr box_constraints& operator+=(extent2i const& rhs) noexcept
+    constexpr box_constraints& operator+=(extent2 const& rhs) noexcept
     {
         minimum.width() += rhs.width();
         preferred.width() += rhs.width();
@@ -93,17 +76,11 @@ struct box_constraints {
         return *this;
     }
 
-    [[nodiscard]] constexpr box_constraints operator+(extent2i const& rhs) const noexcept
+    [[nodiscard]] constexpr box_constraints operator+(extent2 const& rhs) const noexcept
     {
         auto r = *this;
         r += rhs;
         return r;
-    }
-
-    [[deprecated]] constexpr box_constraints& operator+=(extent2 const& rhs) noexcept
-    {
-        *this += narrow_cast<extent2i>(rhs);
-        return *this;
     }
 
     [[nodiscard]] constexpr bool holds_invariant() const noexcept
@@ -117,7 +94,7 @@ struct box_constraints {
         return true;
     }
 
-    [[nodiscard]] friend constexpr box_constraints max(box_constraints const& lhs, extent2i const& rhs) noexcept
+    [[nodiscard]] friend constexpr box_constraints max(box_constraints const& lhs, extent2 const& rhs) noexcept
     {
         auto r = lhs;
         inplace_max(r.minimum, rhs);
@@ -142,7 +119,6 @@ struct box_constraints {
         inplace_max(r.preferred, rhs.preferred);
         inplace_max(r.maximum, rhs.maximum);
         inplace_max(r.margins, rhs.margins);
-        inplace_max(r.padding, rhs.padding);
 
         hi_axiom(r.holds_invariant());
         return r;

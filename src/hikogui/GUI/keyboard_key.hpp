@@ -5,13 +5,17 @@
 #pragma once
 
 #include "keyboard_modifiers.hpp"
-#include "keyboard_virtual_key.hpp"
-#include "../utility/module.hpp"
-#include "../strings.hpp"
+#include "keyboard_virtual_key_intf.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
 #include <string_view>
 #include <unordered_map>
+#include <format>
+#include <string>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.GUI : keyboard_key);
+
+hi_export namespace hi::inline v1 {
 
 /** A key in combination with modifiers.
  * This key is based on the actual symbol on the keyboard.
@@ -40,10 +44,10 @@ public:
 
     keyboard_key(std::string_view key_combination) : modifiers(keyboard_modifiers::none), virtual_key(keyboard_virtual_key::nul)
     {
-        hilet modifiers_and_vkey = split(key_combination, '+');
+        auto const modifiers_and_vkey = split(key_combination, '+');
         hi_assert(modifiers_and_vkey.cbegin() != modifiers_and_vkey.cend());
 
-        hilet end_modifiers = modifiers_and_vkey.cend() - 1;
+        auto const end_modifiers = modifiers_and_vkey.cend() - 1;
         for (auto i = modifiers_and_vkey.cbegin(); i != end_modifiers; ++i) {
             modifiers |= to_keyboard_modifiers(*i);
         }

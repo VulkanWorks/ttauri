@@ -5,11 +5,14 @@
 #pragma once
 
 #include "seed.hpp"
-#include "../SIMD/module.hpp"
-#include "../utility/module.hpp"
+#include "../utility/utility.hpp"
+#include "../macros.hpp"
+#include <hikocpu/hikocpu.hpp>
 #include <random>
 
-namespace hi::inline v1 {
+hi_export_module(hikogui.random.xorshift128p);
+
+hi_export namespace hi::inline v1 {
 
 /** xorshift128+
  */
@@ -38,7 +41,7 @@ public:
     [[nodiscard]] uint64_t next() noexcept
     {
         auto s = _state[0];
-        hilet t = _state[1];
+        auto const t = _state[1];
 
         s ^= s << 23; // a
         s ^= s >> 17; // b
@@ -47,63 +50,6 @@ public:
         _state[0] = t;
         _state[1] = s;
         return s + t;
-    }
-
-    /** Get next 128 bit of random value.
-     *
-     * The algorithm is based around `next64()`, it was modified to do two
-     * consecutive iterations and then merging those using sse instructions.
-     */
-    template<>
-    u64x2 next() noexcept
-    {
-        // scalar: uint64_t x = _state[0];
-        // scalar: uint64_t y = y_ = _state[1];
-        auto s = _state;
-        auto t = s.yx();
-
-        // scalar: x ^= x << 23;
-        // scalar: y ^= y << 23;
-        s ^= (s << 23);
-
-        // scalar: x ^= x >> 17;
-        // scalar: y ^= y >> 17;
-        s ^= (s >> 17);
-
-        // scalar: x ^= y_ ^ (y_ >> 26)
-        hilet tmp = s ^ t ^ (t >> 26);
-
-        // scalar: auto x_ = x;
-        // scalar: t.y() = tmp.x();
-        t = insert<0, 1>(t, tmp);
-
-        // scalar: y ^= x_ ^ (x_ >> 26);
-        s ^= t ^ (t >> 26);
-
-        // scalar: state[0] = x
-        // scalar: state[1] = y
-        _state = s;
-
-        // scalar: return {x + y_, y + x_}
-        return s + t;
-    }
-
-    template<>
-    [[nodiscard]] u32x4 next() noexcept
-    {
-        return u32x4::cast_from(next<u64x2>());
-    }
-
-    template<>
-    [[nodiscard]] i32x4 next() noexcept
-    {
-        return i32x4::cast_from(next<u64x2>());
-    }
-
-    template<>
-    [[nodiscard]] i16x8 next() noexcept
-    {
-        return i16x8::cast_from(next<u64x2>());
     }
 
 private:

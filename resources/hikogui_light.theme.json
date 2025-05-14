@@ -1,0 +1,126 @@
+{
+    "name": "default",
+    "mode": "light",
+
+    // Distance between widgets and between widgets and the border of the container.
+    "margin": 5,
+
+    // The line-width of a border.
+    "border-width": 1,
+
+    // The rounding radius of boxes with rounded corners.
+    "rounding-radius": 4,
+
+    // The size of small square widgets.
+    "size": 11,
+
+    // The size of large widgets. Such as the minimum scroll bar size.
+    "large-size": 19,
+
+    // Size of icons inside a widget.
+    "icon-size": 7,
+
+    // Size of icons representing the length of am average word of a label's text.
+    "large-icon-size": 23,
+
+    // Size of icons being inline with a label's text.
+    "label-icon-size": 15,
+
+    // The colors values are either:
+    // - integers are in sRGB
+    // - floats are in linear-extended-sRGB
+    // - string name of an color in the theme.
+
+    // Bright colors, fitting theme.
+    "blue"       : [  0, 122, 255],
+    "green"      : [ 52, 199,  89],
+    "indigo"     : [ 88,  86, 214],
+    "orange"     : [255, 149,   0],
+    "pink"       : [255,  45,  85],
+    "purple"     : [175,  82, 222],
+    "red"        : [255,  59,  48],
+    "teal"       : [ 90, 200, 250],
+    "yellow"     : [255, 204,   0],
+
+    "gray10"     : [28, 28, 30],
+    "gray9"      : [44, 44, 46],
+    "gray8"      : [28, 28, 30],
+    "gray7"      : [58, 58, 60],
+    "gray6"      : [99, 99, 102],
+    "gray5"      : [142, 142, 147],
+    "gray4"      : [174, 174, 178],
+    "gray3"      : [199, 199, 204],
+    "gray2"      : [209, 209, 214],
+    "gray1"      : [229, 229, 234],
+    "gray0"      : [242, 242, 247],
+
+    // Colors used by widgets, to show nesting inside containers,
+    // and for internal elements and disabled icons.
+    "fill-color": [
+        [242, 242, 247],
+        [229, 229, 234],
+        [209, 209, 214],
+        [199, 199, 204]
+    ],
+
+    // Colors used by widgets for internal elements and disabled icons.
+    "border-color": [
+        [199, 199, 204],
+        [174, 174, 178],
+        [142, 142, 147],
+        [ 99,  99, 102]
+    ],
+
+    // Color for textual or primary elements like icons.
+    "foreground-color":       "gray10",
+
+    // Accent color used by widgets, to show icons, hover and keyboard focus
+    "accent-color":           "blue",
+    "text-select-color":      "blue",
+    "primary-cursor-color":   "gray10",
+    "secondary-cursor-color": "yellow",
+
+    "small-label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 10,
+        "color": "gray10"
+    },
+
+    "label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 12,
+        "color": "gray10"
+    },
+    "warning-label-style": {
+        "family": "Times New Roman",
+        "weight": "regular",
+        "size": 12,
+        "color": "gray10"
+    },
+    "error-label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 12,
+        "color": "red"
+    },
+    "help-label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 12,
+        "color": [88, 86, 214]
+    },
+    "placeholder-label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 12,
+        "color": [142, 142, 147]
+    },
+    "link-label-style": {
+        "family": "Arial",
+        "weight": "regular",
+        "size": 12,
+        "color": [0, 122, 255]
+    }
+}
